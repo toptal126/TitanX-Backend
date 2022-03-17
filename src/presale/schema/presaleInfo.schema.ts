@@ -5,10 +5,10 @@ export type PresaleInfoDocument = PresaleInfo & Document;
 
 @Schema()
 export class PresaleInfo {
-  @Prop({ required: true })
+  @Prop()
   address: string;
 
-  @Prop({ required: true })
+  @Prop()
   owner: string;
 
   @Prop()

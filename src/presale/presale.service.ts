@@ -37,4 +37,8 @@ export class PresaleInfoService {
       })
       .exec();
   }
+
+  async delete(address: string): Promise<PresaleInfo> {
+    return await this.model.findOneAndDelete({ address: address }).exec();
+  }
 }

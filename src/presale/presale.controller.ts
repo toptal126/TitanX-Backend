@@ -36,4 +36,9 @@ export class PresaleController {
   ) {
     return await this.service.update(address, updatePresaleInfoDto);
   }
+
+  @Delete(':address')
+  async delete(@Param('address') address: string) {
+    return await this.service.delete(address);
+  }
 }
