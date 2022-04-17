@@ -3,9 +3,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UpdatePresaleInfoDto } from './dto/update-presaleInfo.dto';
 import { PresaleInfo, PresaleInfoDocument } from './schema/presaleInfo.schema';
-import { Express } from 'express';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 
 @Injectable()
 export class PresaleInfoService {

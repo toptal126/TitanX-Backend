@@ -44,11 +44,11 @@ export class TodoController {
     return await this.service.delete(id);
   }
 
-  @Post('upload')
+  @Post('upload_presale_logo')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads_logo',
+        destination: './public/uploads_logo',
         filename: function (req, file, cb) {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
