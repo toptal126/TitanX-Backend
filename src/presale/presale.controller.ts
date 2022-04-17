@@ -71,6 +71,6 @@ export class PresaleController {
     }),
   )
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    return file.filename;
+    return file;
   }
 }
