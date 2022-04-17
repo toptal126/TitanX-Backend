@@ -10,6 +10,12 @@ import {
 
 import { UpdatePresaleInfoDto } from './dto/update-presaleInfo.dto';
 import { PresaleInfoService } from './presale.service';
+
+import { Express } from 'express';
+import { UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+
 @Controller('presales')
 export class PresaleController {
   constructor(private readonly service: PresaleInfoService) {}

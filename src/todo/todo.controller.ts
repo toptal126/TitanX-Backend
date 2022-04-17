@@ -10,7 +10,10 @@ import {
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { TodoService } from './todo.service';
-
+import { Express } from 'express';
+import { UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 // link
 @Controller('todos')
 export class TodoController {
@@ -39,5 +42,32 @@ export class TodoController {
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return await this.service.delete(id);
+  }
+
+  @Post('upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads_logo',
+        filename: function (req, file, cb) {
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          let re = /(?:\.([^.]+))?$/;
+          cb(
+            null,
+            file.fieldname +
+              '-' +
+              uniqueSuffix +
+              (re.exec(file.originalname)[1]
+                ? '.' + re.exec(file.originalname)[1]
+                : ''),
+          );
+        },
+      }),
+    }),
+  )
+  async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() body) {
+    console.log(file);
+    console.log(body);
   }
 }
