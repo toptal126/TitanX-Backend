@@ -3,6 +3,7 @@ import { PresaleInfoService } from './presale.service';
 import { PresaleController } from './presale.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PresaleInfo, PresaleInfoSchema } from './schema/presaleInfo.schema';
+import { Partner, PartnerSchema } from './schema/partner.schema';
 
 @Module({
   providers: [PresaleInfoService],
@@ -10,6 +11,7 @@ import { PresaleInfo, PresaleInfoSchema } from './schema/presaleInfo.schema';
   imports: [
     MongooseModule.forFeature([
       { name: PresaleInfo.name, schema: PresaleInfoSchema },
+      { name: Partner.name, schema: PartnerSchema },
     ]),
   ],
 })

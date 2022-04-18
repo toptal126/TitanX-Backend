@@ -15,6 +15,7 @@ import { Express } from 'express';
 import { UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { UpdatePartnerDto } from './dto/update-partner.dto';
 
 @Controller('presales')
 export class PresaleController {
@@ -72,5 +73,25 @@ export class PresaleController {
   )
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     return file;
+  }
+
+  @Get('partners/:address')
+  async find_partner(@Param('address') address: string) {
+    return await this.service.findOnePartner(address);
+  }
+
+  @Post('partners')
+  async create_partner(@Body() updatePartnerDto: UpdatePartnerDto) {
+    console.log(updatePartnerDto);
+    return await this.service.create_partner(updatePartnerDto);
+  }
+
+  @Put('partners/:address')
+  async udpate_partner(
+    @Param('address') address: string,
+    @Body() updatePartnerDto: UpdatePartnerDto,
+  ) {
+    console.log(updatePartnerDto);
+    return await this.service.update_partner(address, updatePartnerDto);
   }
 }
