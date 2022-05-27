@@ -9,10 +9,13 @@ import { Partner, PartnerSchema } from './schema/partner.schema';
   providers: [PresaleInfoService],
   controllers: [PresaleController],
   imports: [
-    MongooseModule.forFeature([
-      { name: PresaleInfo.name, schema: PresaleInfoSchema },
-      { name: Partner.name, schema: PartnerSchema },
-    ]),
+    MongooseModule.forFeature(
+      [
+        { name: PresaleInfo.name, schema: PresaleInfoSchema },
+        { name: Partner.name, schema: PartnerSchema },
+      ],
+      'testDB',
+    ),
   ],
 })
 export class PresaleModule {}
