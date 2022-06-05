@@ -29,13 +29,20 @@ export class CoinPriceService {
     return latest[0];
   }
 
+  async findByBlockNumber(blockNumber): Promise<CoinPrice> {
+    const coinPrices = await this.model
+      .find({ toBlock: { $gte: blockNumber } })
+      .sort({ timeStamp: 1 })
+      .limit(1)
+      .exec();
+    return coinPrices[0];
+  }
+
   @Cron('5 * * * * *')
   async handleCron() {
     this.logger.debug(
       `Called when the current second is 15 - ${new Date().getTime() / 1000}`,
     );
-    const currentTimeStamp: number =
-      new Date().getTime() / 1000 - ((new Date().getTime() / 1000) % 60);
     const [[latestDBItem], blockNumber] = await Promise.all([
       this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
       this.getWeb3().eth.getBlockNumber(),
@@ -71,7 +78,7 @@ export class CoinPriceService {
     });
 
     let processingTimeStamp = latestDBItem.timeStamp;
-    let fromBlock = latestDBItem.fromBlock;
+    let fromBlock = latestDBItem.toBlock;
     logs.forEach((item) => {
       const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
       if (logTimeStamp > processingTimeStamp) {

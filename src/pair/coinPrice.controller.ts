@@ -15,4 +15,9 @@ export class CoinPriceController {
   async getLatest() {
     return this.service.findLatest();
   }
+
+  @Get('block/:blockNumber')
+  async findByBlockNumber(@Param('blockNumber') blockNumber: number) {
+    return await this.service.findByBlockNumber(blockNumber);
+  }
 }
