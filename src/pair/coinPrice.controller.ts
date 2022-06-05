@@ -20,4 +20,9 @@ export class CoinPriceController {
   async findByBlockNumber(@Param('blockNumber') blockNumber: number) {
     return await this.service.findByBlockNumber(blockNumber);
   }
+
+  @Get('timestamp/:timeStamp')
+  async findByTimeStamp(@Param('timeStamp') timeStamp: number) {
+    return await this.service.findByTimeStamp(timeStamp);
+  }
 }

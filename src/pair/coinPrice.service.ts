@@ -37,11 +37,19 @@ export class CoinPriceService {
       .exec();
     return coinPrices[0];
   }
+  async findByTimeStamp(timeStamp): Promise<CoinPrice> {
+    const coinPrices = await this.model
+      .find({ timeStamp: { $gte: timeStamp } })
+      .sort({ timeStamp: 1 })
+      .limit(1)
+      .exec();
+    return coinPrices[0];
+  }
 
   @Cron('5 * * * * *')
   async handleCron() {
     this.logger.debug(
-      `Called when the current second is 15 - ${new Date().getTime() / 1000}`,
+      `Called when the current second is 5 - ${new Date().getTime() / 1000}`,
     );
     const [[latestDBItem], blockNumber] = await Promise.all([
       this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
