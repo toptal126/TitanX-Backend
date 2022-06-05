@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { MongooseModule } from '@nestjs/mongoose';
 import { TodoModule } from './todo/todo.module';
 import { PresaleModule } from './presale/presale.module';
 import { PairModule } from './pair/pair.module';
@@ -9,17 +10,21 @@ import { PairModule } from './pair/pair.module';
 // import { PresaleInfoSchema } from './presale/schema/presaleInfo.schema';
 // import { PartnerSchema } from './presale/schema/partner.schema';
 // import { PairSchema } from './pair/schemas/pair.schema';
+require('dotenv').config();
 
+const MONGODB_URI = process.env.MONGODB_URI;
 @Module({
   imports: [
-    MongooseModule.forRoot(
-      'mongodb+srv://kuinka:5a0eYeBNtTKH29OL@cluster0.9kyrn.mongodb.net/testDB',
-      { connectionName: 'testDB' },
-    ),
-    MongooseModule.forRoot(
-      'mongodb+srv://kuinka:5a0eYeBNtTKH29OL@cluster0.9kyrn.mongodb.net/uniswap_v2_pairs',
-      { connectionName: 'uniswap_v2_pairs' },
-    ),
+    ScheduleModule.forRoot(),
+    MongooseModule.forRoot(`${MONGODB_URI}/testDB`, {
+      connectionName: 'testDB',
+    }),
+    MongooseModule.forRoot(`${MONGODB_URI}/uniswap_v2_pairs`, {
+      connectionName: 'uniswap_v2_pairs',
+    }),
+    MongooseModule.forRoot(`${MONGODB_URI}/native_coin_history`, {
+      connectionName: 'native_coin_history',
+    }),
     TodoModule,
     PresaleModule,
     PairModule,
