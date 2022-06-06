@@ -48,75 +48,84 @@ export class CoinPriceService {
 
   @Cron('5 * * * * *')
   async handleCron() {
-    this.logger.debug(
-      `Called when the current second is 5 - ${new Date().getTime() / 1000}`,
-    );
-    const [[latestDBItem], blockNumber] = await Promise.all([
-      this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
-      this.getWeb3().eth.getBlockNumber(),
-    ]);
+    try {
+      this.logger.debug(
+        `Called when the current second is 5 - ${new Date().getTime() / 1000}`,
+      );
+      const [[latestDBItem], blockNumber] = await Promise.all([
+        this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
+        this.getWeb3().eth.getBlockNumber(),
+      ]);
 
-    const blockNumberArray: number[] = Array.from(
-      { length: blockNumber - latestDBItem.toBlock },
-      (_, offset) => offset + latestDBItem.toBlock + 1,
-    );
+      const blockNumberArray: number[] = Array.from(
+        { length: blockNumber - latestDBItem.toBlock },
+        (_, offset) => offset + latestDBItem.toBlock + 1,
+      );
 
-    const timeStampArray = await Promise.all(
-      blockNumberArray.map((blockNumber) =>
-        this.getBlockTimeStampByNumber(blockNumber),
-      ),
-    );
+      const timeStampArray = await Promise.all(
+        blockNumberArray.map((blockNumber) =>
+          this.getBlockTimeStampByNumber(blockNumber),
+        ),
+      );
 
-    let block2timeStamp = [];
-    blockNumberArray.forEach((item, index) => {
-      block2timeStamp[`_${item}`] = timeStampArray[index];
-    });
+      let block2timeStamp = [];
+      blockNumberArray.forEach((item, index) => {
+        block2timeStamp[`_${item}`] = timeStampArray[index];
+      });
 
-    console.log(
-      blockNumberArray.length,
-      timeStampArray.length,
-      //   block2timeStamp,
-    );
+      this.logger.debug(
+        blockNumberArray.length,
+        timeStampArray.length,
+        //   block2timeStamp,
+      );
 
-    const logs = await this.getWeb3().eth.getPastLogs({
-      address: WBNB_BUSD_PAIR,
-      fromBlock: latestDBItem.toBlock,
-      toBlock: blockNumber,
-      topics: [LOG_TOPIC_SWAP],
-    });
+      const logs = await this.getWeb3().eth.getPastLogs({
+        address: WBNB_BUSD_PAIR,
+        fromBlock: latestDBItem.toBlock,
+        toBlock: blockNumber,
+        topics: [LOG_TOPIC_SWAP],
+      });
 
-    let processingTimeStamp = latestDBItem.timeStamp;
-    let fromBlock = latestDBItem.toBlock;
-    logs.forEach((item) => {
-      const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
-      if (logTimeStamp > processingTimeStamp) {
-        const amount0In = parseInt('0x' + item.data.slice(2, 66));
-        const amount0Out = parseInt('0x' + item.data.slice(130, 194));
-        const amount1In = parseInt('0x' + item.data.slice(66, 130));
-        const amount1Out = parseInt('0x' + item.data.slice(194));
-        const usdPrice = (amount1In + amount1Out) / (amount0In + amount0Out);
-        if (usdPrice === 0 || usdPrice === Infinity || usdPrice === null)
-          return;
+      let processingTimeStamp = latestDBItem.timeStamp;
+      let fromBlock = latestDBItem.toBlock;
+      logs.forEach((item) => {
+        const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
+        if (logTimeStamp > processingTimeStamp) {
+          const amount0In = parseInt('0x' + item.data.slice(2, 66));
+          const amount0Out = parseInt('0x' + item.data.slice(130, 194));
+          const amount1In = parseInt('0x' + item.data.slice(66, 130));
+          const amount1Out = parseInt('0x' + item.data.slice(194));
+          const usdPrice = (amount1In + amount1Out) / (amount0In + amount0Out);
+          if (usdPrice === 0 || usdPrice === Infinity || usdPrice === null)
+            return;
 
-        processingTimeStamp += 60;
+          processingTimeStamp += 60;
 
-        const updateDBItem = {
-          timeStamp: processingTimeStamp,
-          usdPrice,
-          fromBlock,
-          toBlock: item.blockNumber,
-          updatedAt: new Date().getTime(),
-        };
-        fromBlock = item.blockNumber;
-        console.log(updateDBItem);
+          const updateDBItem = {
+            timeStamp: processingTimeStamp,
+            usdPrice,
+            fromBlock,
+            toBlock: item.blockNumber,
+            updatedAt: new Date().getTime(),
+          };
+          fromBlock = item.blockNumber;
 
-        this.model
-          .findOneAndUpdate({ timeStamp: processingTimeStamp }, updateDBItem, {
-            upsert: true,
-          })
-          .exec();
-      }
-    });
+          this.logger.debug(updateDBItem);
+
+          this.model
+            .findOneAndUpdate(
+              { timeStamp: processingTimeStamp },
+              updateDBItem,
+              {
+                upsert: true,
+              },
+            )
+            .exec();
+        }
+      });
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   async getBlockTimeStampByNumber(blockNumber: number) {
