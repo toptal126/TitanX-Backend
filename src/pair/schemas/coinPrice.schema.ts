@@ -5,6 +5,15 @@ export type CoinPriceDocument = CoinPrice & Document;
 
 @Schema({ collection: 'bsc', versionKey: false })
 export class CoinPrice {
+  constructor(t?: CoinPrice) {
+    if (t) {
+      this.timeStamp = t.timeStamp;
+      this.fromBlock = t.fromBlock;
+      this.toBlock = t.toBlock;
+      this.usdPrice = t.usdPrice;
+      this.updatedAt = t.updatedAt;
+    }
+  }
   @Prop({ required: true })
   timeStamp: number;
 
