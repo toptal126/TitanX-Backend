@@ -48,6 +48,7 @@ export class CoinPriceController {
     const st = new Date().getTime() / 1000;
 
     const bestPair = await this.pairService.findBestPair(tokenAddress);
+    // console.log(bestPair);
     if (bestPair === undefined) {
       throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
     }

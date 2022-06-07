@@ -127,15 +127,15 @@ export class CoinPriceService {
 
           this.logger.debug(updateDBItem);
 
-          // this.model
-          //   .findOneAndUpdate(
-          //     { timeStamp: processingTimeStamp },
-          //     updateDBItem,
-          //     {
-          //       upsert: true,
-          //     },
-          //   )
-          //   .exec();
+          this.model
+            .findOneAndUpdate(
+              { timeStamp: processingTimeStamp },
+              updateDBItem,
+              {
+                upsert: true,
+              },
+            )
+            .exec();
         }
       });
     } catch (error) {
