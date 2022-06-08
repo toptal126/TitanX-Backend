@@ -3,16 +3,23 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
 import { Model } from 'mongoose';
 import {
+  DEAD_ADDRESS,
   LOG_TOPIC_SWAP,
   WBNB_ADDRESS,
   WBNB_BUSD_PAIR,
+  ZERO_ADDRESS,
 } from 'src/helpers/constants';
+import * as ABI_ERC20 from 'src/helpers/abis/ABI_ERC20.json';
 import {
   BitQueryTradeInterval,
   CoinPriceCandle,
   CoinPriceQuery,
+  TokenInformation,
 } from './interfaces/coinPrice.interface';
-import { DEX_TRADE_PER_INTERVAL } from './query/bitquery.query';
+import {
+  CONTRACT_CREATION_BLOCK,
+  DEX_TRADE_PER_INTERVAL,
+} from './query/bitquery.query';
 import { CoinPrice, CoinPriceDocument } from './schemas/coinPrice.schema';
 import axios from 'axios';
 require('dotenv').config();
@@ -21,18 +28,19 @@ const CURRENT_API_KEY_ARRAY = process.env.BITQUERY_API_KEY_ARRAY.split(' ');
 
 @Injectable()
 export class CoinPriceService {
-  private Web3;
+  private web3;
   private readonly logger = new Logger(CoinPriceService.name);
 
   constructor(
     @InjectModel(CoinPrice.name)
     private readonly model: Model<CoinPriceDocument>,
   ) {
-    this.Web3 = require('web3');
+    const Web3 = require('web3');
+    this.web3 = new Web3('https://bsc-dataseed.binance.org/');
   }
 
-  private getWeb3(): any {
-    return new this.Web3('https://bsc-dataseed.binance.org/');
+  private getERC20Contract(tokenAddress: string) {
+    return new this.web3.eth.Contract(ABI_ERC20, tokenAddress);
   }
 
   async findLatest(): Promise<CoinPrice> {
@@ -69,7 +77,7 @@ export class CoinPriceService {
       );
       const [[latestDBItem], blockNumber] = await Promise.all([
         this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
-        this.getWeb3().eth.getBlockNumber(),
+        this.web3.eth.getBlockNumber(),
       ]);
 
       const blockNumberArray: number[] = Array.from(
@@ -92,7 +100,7 @@ export class CoinPriceService {
         `${blockNumberArray.length}, ${timeStampArray.length}, ${block2timeStamp}`,
       );
 
-      const logs = await this.getWeb3().eth.getPastLogs({
+      const logs = await this.web3.eth.getPastLogs({
         address: WBNB_BUSD_PAIR,
         fromBlock: latestDBItem.toBlock,
         toBlock: blockNumber,
@@ -142,7 +150,7 @@ export class CoinPriceService {
   }
 
   async getBlockTimeStampByNumber(blockNumber: number) {
-    const block = await this.getWeb3().eth.getBlock(blockNumber);
+    const block = await this.web3.eth.getBlock(blockNumber);
     return block.timestamp;
   }
 
@@ -224,7 +232,7 @@ export class CoinPriceService {
       candleArr[i].high = dexTrades[currentIndex].high;
       candleArr[i].low = dexTrades[currentIndex].low;
       candleArr[i].volume = 0;
-      candleArr[i].time = nativeCoinPriceArry[i].timeStamp;
+      candleArr[i].time = nativeCoinPriceArry[i].timeStamp * 1000;
       if (nativeCoinPriceArry[i].timeStamp === queryTimeStamp) {
         candleArr[i].volume = dexTrades[currentIndex].volume;
         if (dexTrades[currentIndex + 1]) currentIndex++;
@@ -328,5 +336,37 @@ export class CoinPriceService {
     //   console.log(i, result[i].usdPrice, dbResult[i]?.usdPrice);
     // }
     return { result, desiredLength };
+  }
+
+  async getTokenInformation(tokenAddress: string): Promise<TokenInformation> {
+    const st = new Date().getTime();
+
+    const tokenContract = this.getERC20Contract(tokenAddress);
+    const [{ data: PCS_API_RESULT }, minted, decimals, dead_amount] =
+      await Promise.all([
+        axios.get(`https://api.pancakeswap.info/api/v2/tokens/${tokenAddress}`),
+        tokenContract.methods.totalSupply().call(),
+        tokenContract.methods.decimals().call(),
+        tokenContract.methods.balanceOf(DEAD_ADDRESS).call(),
+      ]);
+
+    let result: TokenInformation = {
+      id: tokenAddress,
+      price: parseFloat(PCS_API_RESULT.data?.price),
+      symbol: PCS_API_RESULT.data?.symbol,
+      name: PCS_API_RESULT.data?.name,
+      minted: parseInt(minted) / 10 ** decimals,
+      burned: parseInt(dead_amount) / 10 ** decimals,
+      decimals: parseInt(decimals),
+    };
+    console.log(`took: ${new Date().getTime() - st} ms`);
+    return result;
+  }
+
+  async getCreationBlock(contractAddress: string) {
+    const creationBlock = await this.executeBitqueryAPI(
+      CONTRACT_CREATION_BLOCK(contractAddress),
+    );
+    return creationBlock.data.ethereum.smartContractCalls[0].block;
   }
 }

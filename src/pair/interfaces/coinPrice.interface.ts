@@ -25,3 +25,13 @@ export interface BitQueryTradeInterval {
   open: number;
   close: number;
 }
+
+export interface TokenInformation {
+  id: string;
+  symbol: string;
+  name: string;
+  price: number;
+  minted: number;
+  burned: number;
+  decimals: number;
+}

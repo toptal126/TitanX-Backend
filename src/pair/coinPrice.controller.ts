@@ -6,10 +6,12 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import { WBNB_ADDRESS } from 'src/helpers/constants';
 import { CoinPriceService } from './coinPrice.service';
 import {
   CoinPriceCandle,
   CoinPriceQuery,
+  TokenInformation,
 } from './interfaces/coinPrice.interface';
 import { PairService } from './pair.service';
 
@@ -57,15 +59,47 @@ export class CoinPriceController {
     }
     candleQuery.from -= candleQuery.interval * 60;
     candleQuery.to += candleQuery.interval * 60;
-    candleQuery.baseAddress = bestPair.token1;
-    candleQuery.quoteAddress = bestPair.token0;
-    console.log(candleQuery);
+    candleQuery.baseAddress =
+      bestPair.token0 !== WBNB_ADDRESS ? bestPair.token0 : bestPair.token1;
+    candleQuery.quoteAddress =
+      bestPair.token0 === WBNB_ADDRESS ? bestPair.token0 : bestPair.token1;
+    // console.log(candleQuery);
 
     let result: CoinPriceCandle[] =
       await this.service.getDexTradeDuringPeriodPerInterval(candleQuery);
 
-    console.log(new Date().getTime() / 1000 - st);
+    console.log(
+      new Date().getTime() / 1000 - st,
+      candleQuery.from,
+      candleQuery.to,
+      candleQuery.interval,
+    );
     // return result;
     return result.slice(1, -1);
+  }
+
+  @Get('/information/:tokenAddress')
+  async tokenInformation(
+    @Param('tokenAddress') tokenAddress: string,
+  ): Promise<TokenInformation> {
+    try {
+      return await this.service.getTokenInformation(tokenAddress);
+    } catch (error) {
+      // console.log(error);
+      throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('/creationBlockNumber/:contractAddress')
+  async creationBlockNumber(@Param('contractAddress') contractAddress: string) {
+    try {
+      return await this.service.getCreationBlock(contractAddress);
+    } catch (error) {
+      // console.log(error);
+      throw new HttpException(
+        'Invalid Contract Address',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 }

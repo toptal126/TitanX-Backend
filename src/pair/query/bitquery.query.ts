@@ -43,3 +43,28 @@ export const DEX_TRADE_PER_INTERVAL = (candleQuery: CoinPriceQuery) => {
     },
   };
 };
+
+export const CONTRACT_CREATION_BLOCK = (contractAddress: string) => {
+  return {
+    query: `
+      query( $contractAddress: String) {
+        ethereum (network:bsc){
+            smartContractCalls(
+                smartContractMethod: {is: "Contract Creation"}, 
+                smartContractAddress: {is: $contractAddress}
+            ) {
+                block {
+                    height
+                    timestamp {
+                        unixtime
+                    }
+                }
+            }
+        }
+    }
+    `,
+    variables: {
+      contractAddress,
+    },
+  };
+};
