@@ -89,9 +89,7 @@ export class CoinPriceService {
       });
 
       this.logger.debug(
-        blockNumberArray.length,
-        timeStampArray.length,
-        //   block2timeStamp,
+        `${blockNumberArray.length}, ${timeStampArray.length}, ${block2timeStamp}`,
       );
 
       const logs = await this.getWeb3().eth.getPastLogs({
@@ -125,7 +123,7 @@ export class CoinPriceService {
           };
           fromBlock = item.blockNumber;
 
-          this.logger.debug(updateDBItem);
+          // this.logger.debug(updateDBItem);
 
           this.model
             .findOneAndUpdate(
