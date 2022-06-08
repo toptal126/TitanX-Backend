@@ -46,12 +46,17 @@ export class CoinPriceController {
     @Query() candleQuery: CoinPriceQuery,
   ): Promise<CoinPriceCandle[]> {
     const st = new Date().getTime() / 1000;
+    candleQuery.to = parseInt(candleQuery.to.toString());
+    candleQuery.from = parseInt(candleQuery.from.toString());
+    candleQuery.interval = parseInt(candleQuery.interval.toString());
 
     const bestPair = await this.pairService.findBestPair(tokenAddress);
     // console.log(bestPair);
     if (bestPair === undefined) {
       throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
     }
+    candleQuery.from -= candleQuery.interval * 60;
+    candleQuery.to += candleQuery.interval * 60;
     candleQuery.baseAddress = bestPair.token1;
     candleQuery.quoteAddress = bestPair.token0;
     console.log(candleQuery);
@@ -60,6 +65,7 @@ export class CoinPriceController {
       await this.service.getDexTradeDuringPeriodPerInterval(candleQuery);
 
     console.log(new Date().getTime() / 1000 - st);
-    return result;
+    // return result;
+    return result.slice(1, -1);
   }
 }

@@ -298,7 +298,7 @@ export class CoinPriceService {
 
     const edTimeStamp: number = to - (to % intervalSec);
     const desiredLength: number = (edTimeStamp - stTimeStamp) / intervalSec + 1;
-
+    // console.log(desiredLength, 'desiredLength', edTimeStamp);
     let result: CoinPrice[] = [];
     for (let i = 0; i < desiredLength; i++) {
       result.push(new CoinPrice());
