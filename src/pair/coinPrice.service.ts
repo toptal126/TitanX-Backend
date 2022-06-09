@@ -225,6 +225,18 @@ export class CoinPriceService {
 
     let currentIndex: number = 0;
     for (let i = 0; i < desiredLength; i++) {
+      if (dexTrades[currentIndex] === undefined) {
+        dexTrades[currentIndex] = {
+          timeInterval: {
+            minute: new Date().toISOString(),
+          },
+          open: -1 / nativeCoinPriceArry[i].usdPrice,
+          close: -1 / nativeCoinPriceArry[i].usdPrice,
+          high: -1 / nativeCoinPriceArry[i].usdPrice,
+          low: -1 / nativeCoinPriceArry[i].usdPrice,
+          volume: 0,
+        };
+      }
       let queryTimeStamp: number =
         new Date(dexTrades[currentIndex].timeInterval.minute).getTime() / 1000;
       candleArr[i].open = dexTrades[currentIndex].open;

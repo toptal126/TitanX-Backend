@@ -47,35 +47,43 @@ export class CoinPriceController {
     @Param('tokenAddress') tokenAddress: string,
     @Query() candleQuery: CoinPriceQuery,
   ): Promise<CoinPriceCandle[]> {
-    const st = new Date().getTime() / 1000;
-    candleQuery.to = parseInt(candleQuery.to.toString());
-    candleQuery.from = parseInt(candleQuery.from.toString());
-    candleQuery.interval = parseInt(candleQuery.interval.toString());
+    try {
+      const st = new Date().getTime() / 1000;
+      candleQuery.to = parseInt(candleQuery.to.toString());
+      candleQuery.from = parseInt(candleQuery.from.toString());
+      candleQuery.interval = parseInt(candleQuery.interval.toString());
 
-    const bestPair = await this.pairService.findBestPair(tokenAddress);
-    // console.log(bestPair);
-    if (bestPair === undefined) {
-      throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
+      const bestPair = await this.pairService.findBestPair(tokenAddress);
+      // console.log(bestPair);
+      if (bestPair === undefined) {
+        throw new HttpException(
+          'Invalid Token Address',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      candleQuery.from -= candleQuery.interval * 60;
+      candleQuery.to += candleQuery.interval * 60;
+      candleQuery.baseAddress =
+        bestPair.token0 !== WBNB_ADDRESS ? bestPair.token0 : bestPair.token1;
+      candleQuery.quoteAddress =
+        bestPair.token0 === WBNB_ADDRESS ? bestPair.token0 : bestPair.token1;
+      // console.log(candleQuery);
+
+      let result: CoinPriceCandle[] =
+        await this.service.getDexTradeDuringPeriodPerInterval(candleQuery);
+
+      console.log(
+        new Date().getTime() / 1000 - st,
+        candleQuery.from,
+        candleQuery.to,
+        candleQuery.interval,
+      );
+      // return result;
+      return result.slice(1, -1);
+    } catch (error) {
+      console.log(error);
+      return [];
     }
-    candleQuery.from -= candleQuery.interval * 60;
-    candleQuery.to += candleQuery.interval * 60;
-    candleQuery.baseAddress =
-      bestPair.token0 !== WBNB_ADDRESS ? bestPair.token0 : bestPair.token1;
-    candleQuery.quoteAddress =
-      bestPair.token0 === WBNB_ADDRESS ? bestPair.token0 : bestPair.token1;
-    // console.log(candleQuery);
-
-    let result: CoinPriceCandle[] =
-      await this.service.getDexTradeDuringPeriodPerInterval(candleQuery);
-
-    console.log(
-      new Date().getTime() / 1000 - st,
-      candleQuery.from,
-      candleQuery.to,
-      candleQuery.interval,
-    );
-    // return result;
-    return result.slice(1, -1);
   }
 
   @Get('/information/:tokenAddress')
