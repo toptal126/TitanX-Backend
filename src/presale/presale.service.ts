@@ -30,25 +30,25 @@ export class PresaleInfoService {
   }
 
   async findOne(address: string): Promise<PresaleInfo> {
-    return await this.model.findOne({ address: address });
+    return await this.model.findOne({ address: { $regex: `${address}`, $options: 'i' } });
   }
   async update(
     address: string,
     updatePresaleInfoDto: UpdatePresaleInfoDto,
   ): Promise<PresaleInfo> {
     return await this.model
-      .findOneAndUpdate({ address: address }, updatePresaleInfoDto, {
+      .findOneAndUpdate({ address: { $regex: `${address}`, $options: 'i' } }, updatePresaleInfoDto, {
         returnDocument: 'after',
       })
       .exec();
   }
 
   async delete(address: string): Promise<PresaleInfo> {
-    return await this.model.findOneAndDelete({ address: address }).exec();
+    return await this.model.findOneAndDelete({ address: { $regex: `${address}`, $options: 'i' } }).exec();
   }
 
   async findOnePartner(address: string): Promise<Partner> {
-    return await this.partner_model.findOne({ address: address });
+    return await this.partner_model.findOne({ address: { $regex: `${address}`, $options: 'i' } });
   }
 
   async create_partner(createPartnerDto: UpdatePartnerDto): Promise<Partner> {
@@ -63,7 +63,7 @@ export class PresaleInfoService {
     updatePartnerDto: UpdatePartnerDto,
   ): Promise<Partner> {
     return await this.partner_model
-      .findOneAndUpdate({ address: address }, updatePartnerDto, {
+      .findOneAndUpdate({ address: { $regex: `${address}`, $options: 'i' } }, updatePartnerDto, {
         returnDocument: 'after',
       })
       .exec();
