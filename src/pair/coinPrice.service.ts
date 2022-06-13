@@ -39,6 +39,26 @@ export class CoinPriceService {
     this.web3 = new Web3('https://bsc-dataseed.binance.org/');
   }
 
+  public async removeDoubledPairs() {
+    const doubledPairs = await this.model
+      .aggregate([
+        {
+          $group: {
+            _id: { timeStamp: '$timeStamp' },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: -1 } },
+        { $match: { count: { $gt: 1 } } },
+      ])
+      .limit(100)
+      .exec();
+    doubledPairs.forEach((item) => {
+      this.model.findOneAndDelete({ timeStamp: item._id.timeStamp }).exec();
+    });
+    return doubledPairs;
+  }
+
   private getERC20Contract(tokenAddress: string) {
     return new this.web3.eth.Contract(ABI_ERC20, tokenAddress);
   }
