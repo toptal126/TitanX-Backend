@@ -178,6 +178,7 @@ export class CoinPriceService {
 
   async getDexTradeDuringPeriodPerInterval(
     candleQuery: CoinPriceQuery,
+    tokenAddress: string,
   ): Promise<CoinPriceCandle[]> {
     let candleArr: CoinPriceCandle[] = [];
     let bitqueryArr;
@@ -188,6 +189,15 @@ export class CoinPriceService {
         WBNB_ADDRESS.toLocaleLowerCase() ||
       candleQuery.quoteAddress.toLocaleLowerCase() ===
         WBNB_ADDRESS.toLocaleLowerCase();
+    if (
+      candleQuery.quoteAddress.toLowerCase() === WBNB_ADDRESS.toLowerCase() &&
+      tokenAddress.toLowerCase() === WBNB_ADDRESS.toLowerCase()
+    ) {
+      const temp = candleQuery.baseAddress;
+      candleQuery.baseAddress = candleQuery.quoteAddress;
+      candleQuery.quoteAddress = temp;
+    }
+    console.log(candleQuery);
     if (isBNBPaired)
       [{ result: nativeCoinPriceArry, desiredLength }, bitqueryArr] =
         await Promise.all([
@@ -276,11 +286,16 @@ export class CoinPriceService {
         candleArr[i].open = dexTrades[currentIndex].close;
       }
 
-      candleArr[i].close *= nativeCoinPriceArry[i].usdPrice;
-      candleArr[i].open *= nativeCoinPriceArry[i].usdPrice;
-      candleArr[i].high *= nativeCoinPriceArry[i].usdPrice;
-      candleArr[i].low *= nativeCoinPriceArry[i].usdPrice;
-      candleArr[i].volume *= nativeCoinPriceArry[i].usdPrice;
+      if (
+        candleQuery.baseAddress.toLowerCase() !== WBNB_ADDRESS.toLowerCase() ||
+        tokenAddress.toLowerCase() !== WBNB_ADDRESS.toLowerCase()
+      ) {
+        candleArr[i].close *= nativeCoinPriceArry[i].usdPrice;
+        candleArr[i].open *= nativeCoinPriceArry[i].usdPrice;
+        candleArr[i].high *= nativeCoinPriceArry[i].usdPrice;
+        candleArr[i].low *= nativeCoinPriceArry[i].usdPrice;
+        candleArr[i].volume *= nativeCoinPriceArry[i].usdPrice;
+      }
     }
     candleArr.forEach((item, i) => {
       if (candleArr.length - 1 !== i) {

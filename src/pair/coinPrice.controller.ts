@@ -71,7 +71,10 @@ export class CoinPriceController {
       // console.log(candleQuery);
 
       let result: CoinPriceCandle[] =
-        await this.service.getDexTradeDuringPeriodPerInterval(candleQuery);
+        await this.service.getDexTradeDuringPeriodPerInterval(
+          candleQuery,
+          tokenAddress,
+        );
 
       console.log(
         new Date().getTime() / 1000 - st,
