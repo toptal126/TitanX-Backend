@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
 import { Model } from 'mongoose';
 import {
+  BUSD_ADDRESS,
   DEAD_ADDRESS,
   LOG_TOPIC_SWAP,
   WBNB_ADDRESS,
@@ -22,6 +23,7 @@ import {
 } from './query/bitquery.query';
 import { CoinPrice, CoinPriceDocument } from './schemas/coinPrice.schema';
 import axios from 'axios';
+import { Pair } from './schemas/pair.schema';
 require('dotenv').config();
 
 const CURRENT_API_KEY_ARRAY = process.env.BITQUERY_API_KEY_ARRAY.split(' ');
@@ -153,15 +155,15 @@ export class CoinPriceService {
 
           // this.logger.debug(updateDBItem);
 
-          // this.model
-          //   .findOneAndUpdate(
-          //     { timeStamp: processingTimeStamp },
-          //     updateDBItem,
-          //     {
-          //       upsert: true,
-          //     },
-          //   )
-          //   .exec();
+          this.model
+            .findOneAndUpdate(
+              { timeStamp: processingTimeStamp },
+              updateDBItem,
+              {
+                upsert: true,
+              },
+            )
+            .exec();
         }
       });
     } catch (error) {
@@ -370,7 +372,10 @@ export class CoinPriceService {
     return { result, desiredLength };
   }
 
-  async getTokenInformation(tokenAddress: string): Promise<TokenInformation> {
+  async getTokenInformation(
+    tokenAddress: string,
+    bestPair: Pair,
+  ): Promise<TokenInformation> {
     const st = new Date().getTime();
 
     const tokenContract = this.getERC20Contract(tokenAddress);
@@ -381,7 +386,24 @@ export class CoinPriceService {
         tokenContract.methods.decimals().call(),
         tokenContract.methods.balanceOf(DEAD_ADDRESS).call(),
       ]);
-
+    let isToken1BNB: boolean = true;
+    let isToken1BUSD: boolean = false;
+    let isBUSDPaired: boolean = false;
+    if (bestPair.token1.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
+      isToken1BNB = true;
+    else if (bestPair.token0.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
+      isToken1BNB = false;
+    else if (
+      bestPair.token1.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()
+    ) {
+      isBUSDPaired = true;
+      isToken1BUSD = true;
+    } else if (
+      bestPair.token0.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()
+    ) {
+      isBUSDPaired = true;
+      isToken1BUSD = false;
+    }
     let result: TokenInformation = {
       id: tokenAddress,
       price: parseFloat(PCS_API_RESULT.data?.price),
@@ -390,6 +412,10 @@ export class CoinPriceService {
       minted: parseInt(minted) / 10 ** decimals,
       burned: parseInt(dead_amount) / 10 ** decimals,
       decimals: parseInt(decimals),
+      pair: bestPair.pairAddress,
+      isToken1BNB,
+      isToken1BUSD,
+      isBUSDPaired,
     };
     console.log(`took: ${new Date().getTime() - st} ms`);
     return result;

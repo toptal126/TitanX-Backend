@@ -34,4 +34,8 @@ export interface TokenInformation {
   minted: number;
   burned: number;
   decimals: number;
+  pair: string;
+  isToken1BNB: boolean;
+  isToken1BUSD: boolean;
+  isBUSDPaired: boolean;
 }

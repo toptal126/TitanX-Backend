@@ -14,6 +14,7 @@ import {
   TokenInformation,
 } from './interfaces/coinPrice.interface';
 import { PairService } from './pair.service';
+import { Pair } from './schemas/pair.schema';
 
 @Controller('coinprice')
 export class CoinPriceController {
@@ -91,9 +92,10 @@ export class CoinPriceController {
     @Param('tokenAddress') tokenAddress: string,
   ): Promise<TokenInformation> {
     try {
-      return await this.service.getTokenInformation(tokenAddress);
+      const bestPair: Pair = await this.pairService.findBestPair(tokenAddress);
+      return await this.service.getTokenInformation(tokenAddress, bestPair);
     } catch (error) {
-      // console.log(error);
+      console.log(error);
       throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
     }
   }
