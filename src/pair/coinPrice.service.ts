@@ -391,16 +391,13 @@ export class CoinPriceService {
     let isBUSDPaired: boolean = false;
     if (bestPair.token1.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
       isToken1BNB = true;
-    else if (bestPair.token0.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
+    if (bestPair.token0.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
       isToken1BNB = false;
-    else if (
-      bestPair.token1.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()
-    ) {
+    if (bestPair.token1.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()) {
       isBUSDPaired = true;
       isToken1BUSD = true;
-    } else if (
-      bestPair.token0.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()
-    ) {
+    }
+    if (bestPair.token0.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()) {
       isBUSDPaired = true;
       isToken1BUSD = false;
     }
