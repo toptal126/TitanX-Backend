@@ -21,6 +21,18 @@ export class PairService {
   async findOne(pairAddress: string): Promise<Pair> {
     return await this.model.findOne({ pairAddress }).exec();
   }
+  async findByTokenAddress(tokenAddress: string): Promise<Pair[]> {
+    return await this.model
+      .find({
+        $or: [
+          { token0: { $regex: `${tokenAddress}`, $options: 'i' } },
+          { token1: { $regex: `${tokenAddress}`, $options: 'i' } },
+        ],
+      })
+      .sort({ reserve_usd: -1 })
+      .limit(10)
+      .exec();
+  }
 
   async findByIndex(pairIndex: string): Promise<Pair> {
     return await this.model.findOne({ pairIndex }).exec();

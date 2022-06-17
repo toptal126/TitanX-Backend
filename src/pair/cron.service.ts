@@ -37,7 +37,7 @@ export class CronService {
     this.web3 = new Web3(this.rpcUrl);
   }
 
-  changeWebRpcUrl = () => {
+  changeWeb3RpcUrl = () => {
     this.rpcUrl = getRandRpcElseOne(this.rpcUrl);
     const Web3 = require('web3');
     this.web3 = new Web3(this.rpcUrl);
@@ -58,82 +58,90 @@ export class CronService {
 
   // BNB Price Update
   @Cron('5 * * * * *')
-  async handleCron() {
-    try {
-      this.logger.debug(
-        `Called when the current second is 5 - ${new Date().getTime() / 1000}`,
-      );
-      const [[latestDBItem], blockNumber] = await Promise.all([
-        this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
-        this.web3.eth.getBlockNumber(),
-      ]);
+  async updateCoinPrice() {
+    let i = 0;
+    while (i < 5) {
+      try {
+        this.logger.debug(
+          `Called when the current second is 5 - ${
+            new Date().getTime() / 1000
+          }`,
+        );
+        const [[latestDBItem], blockNumber] = await Promise.all([
+          this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
+          this.web3.eth.getBlockNumber(),
+        ]);
 
-      const blockNumberArray: number[] = Array.from(
-        { length: blockNumber - latestDBItem.toBlock },
-        (_, offset) => offset + latestDBItem.toBlock + 1,
-      );
+        const blockNumberArray: number[] = Array.from(
+          { length: blockNumber - latestDBItem.toBlock },
+          (_, offset) => offset + latestDBItem.toBlock + 1,
+        );
 
-      const timeStampArray = await Promise.all(
-        blockNumberArray.map((blockNumber) =>
-          this.getBlockTimeStampByNumber(blockNumber),
-        ),
-      );
+        const timeStampArray = await Promise.all(
+          blockNumberArray.map((blockNumber) =>
+            this.getBlockTimeStampByNumber(blockNumber),
+          ),
+        );
 
-      let block2timeStamp = [];
-      blockNumberArray.forEach((item, index) => {
-        block2timeStamp[`_${item}`] = timeStampArray[index];
-      });
+        let block2timeStamp = [];
+        blockNumberArray.forEach((item, index) => {
+          block2timeStamp[`_${item}`] = timeStampArray[index];
+        });
 
-      this.logger.debug(
-        `${blockNumberArray.length}, ${timeStampArray.length}, ${block2timeStamp}`,
-      );
+        this.logger.debug(
+          `${blockNumberArray.length}, ${timeStampArray.length}, ${block2timeStamp}`,
+        );
 
-      const logs = await this.web3.eth.getPastLogs({
-        address: WBNB_BUSD_PAIR,
-        fromBlock: latestDBItem.toBlock,
-        toBlock: blockNumber,
-        topics: [LOG_TOPIC_SWAP],
-      });
+        const logs = await this.web3.eth.getPastLogs({
+          address: WBNB_BUSD_PAIR,
+          fromBlock: latestDBItem.toBlock,
+          toBlock: blockNumber,
+          topics: [LOG_TOPIC_SWAP],
+        });
 
-      let processingTimeStamp = latestDBItem.timeStamp;
-      let fromBlock = latestDBItem.toBlock;
-      logs.forEach((item) => {
-        const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
-        if (logTimeStamp > processingTimeStamp) {
-          const amount0In = parseInt('0x' + item.data.slice(2, 66));
-          const amount0Out = parseInt('0x' + item.data.slice(130, 194));
-          const amount1In = parseInt('0x' + item.data.slice(66, 130));
-          const amount1Out = parseInt('0x' + item.data.slice(194));
-          const usdPrice = (amount1In + amount1Out) / (amount0In + amount0Out);
-          if (usdPrice === 0 || usdPrice === Infinity || usdPrice === null)
-            return;
+        let processingTimeStamp = latestDBItem.timeStamp;
+        let fromBlock = latestDBItem.toBlock;
+        logs.forEach((item) => {
+          const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
+          if (logTimeStamp > processingTimeStamp) {
+            const amount0In = parseInt('0x' + item.data.slice(2, 66));
+            const amount0Out = parseInt('0x' + item.data.slice(130, 194));
+            const amount1In = parseInt('0x' + item.data.slice(66, 130));
+            const amount1Out = parseInt('0x' + item.data.slice(194));
+            const usdPrice =
+              (amount1In + amount1Out) / (amount0In + amount0Out);
+            if (usdPrice === 0 || usdPrice === Infinity || usdPrice === null)
+              return;
 
-          processingTimeStamp += 60;
+            processingTimeStamp += 60;
 
-          const updateDBItem = {
-            timeStamp: processingTimeStamp,
-            usdPrice,
-            fromBlock,
-            toBlock: item.blockNumber,
-            updatedAt: new Date().getTime(),
-          };
-          fromBlock = item.blockNumber;
+            const updateDBItem = {
+              timeStamp: processingTimeStamp,
+              usdPrice,
+              fromBlock,
+              toBlock: item.blockNumber,
+              updatedAt: new Date().getTime(),
+            };
+            fromBlock = item.blockNumber;
 
-          // this.logger.debug(updateDBItem);
+            // this.logger.debug(updateDBItem);
 
-          this.model
-            .findOneAndUpdate(
-              { timeStamp: processingTimeStamp },
-              updateDBItem,
-              {
-                upsert: true,
-              },
-            )
-            .exec();
-        }
-      });
-    } catch (error) {
-      this.logger.error(error);
+            this.model
+              .findOneAndUpdate(
+                { timeStamp: processingTimeStamp },
+                updateDBItem,
+                {
+                  upsert: true,
+                },
+              )
+              .exec();
+          }
+        });
+      } catch (error) {
+        this.logger.error(error);
+        this.changeWeb3RpcUrl();
+        i++;
+      }
     }
   }
 
@@ -252,7 +260,7 @@ export class CronService {
       ABI_UNISWAP_V2_FACTORY,
       PANCAKESWAP_V2_FACTORY,
     );
-    this.getPairInfobyIndex(111, factoryContract);
+    // this.getPairInfobyIndex(111, factoryContract);
   }
 
   async tokenInfoPCSV2Api(address, pairIndex) {
@@ -374,12 +382,12 @@ export class CronService {
         } catch (error) {
           console.log('error with processing pair', pairAddress, pairIndex);
           i++;
-          this.changeWebRpcUrl();
+          this.changeWeb3RpcUrl();
         }
       } catch (error) {
         console.log('error', pairIndex);
         i++;
-        this.changeWebRpcUrl();
+        this.changeWeb3RpcUrl();
       }
     }
   }

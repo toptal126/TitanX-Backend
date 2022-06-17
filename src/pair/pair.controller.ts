@@ -17,6 +17,13 @@ export class PairController {
     return await this.service.findOne(pairAddress);
   }
 
+  @Get('/token/:tokenAddress')
+  async findByTokenAddress(
+    @Param('tokenAddress') tokenAddress: string,
+  ): Promise<Pair[]> {
+    return await this.service.findByTokenAddress(tokenAddress);
+  }
+
   @Get('/index/:pairIndex')
   async findByIndex(@Param('pairIndex') pairIndex: string): Promise<Pair> {
     return await this.service.findByIndex(pairIndex);
