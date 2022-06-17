@@ -150,9 +150,6 @@ export class CronService {
     let lastPair = loggedLastPair.pairIndex;
     let startPair = lastPair - 10000;
     // lastPair = startPair + 1;
-    console.log(startPair, lastPair);
-    return;
-
     for (let i = startPair - batchCount; i < lastPair; i += batchCount) {
       let idArr = Array.from(
         { length: batchCount },
