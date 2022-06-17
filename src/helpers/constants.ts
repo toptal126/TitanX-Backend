@@ -49,3 +49,29 @@ export const DEX_FACTORIES_ADDRESS = [
   '0x858e3312ed3a876947ea49d572a7c42de08af7ee', // Biswap
   // "0xd6715a8be3944ec72738f0bfdc739d48c3c29349", //NomiSwap
 ];
+
+const RPC_LIST = [
+  'https://bsc.mytokenpocket.vip',
+  'https://bsc-dataseed3.binance.org',
+  'https://bsc-dataseed1.defibit.io',
+  'https://bsc-dataseed1.binance.org',
+  'https://bsc-dataseed2.binance.org',
+  'https://bsc-dataseed4.binance.org',
+  'https://bsc-dataseed2.defibit.io',
+  'https://bsc-dataseed.binance.org',
+  'https://rpc.ankr.com/bsc',
+  'https://bsc-dataseed3.ninicoin.io',
+  'https://bsc-dataseed2.ninicoin.io',
+  'https://bsc-dataseed3.defibit.io',
+  'https://bsc-dataseed1.ninicoin.io',
+  'https://bsc-dataseed4.defibit.io',
+  'https://binance.nodereal.io',
+  'https://rpc-bsc.bnb48.club',
+  'https://bscrpc.com',
+  'https://bsc-dataseed4.ninicoin.io',
+];
+
+export const getRandRpcElseOne = (rpc) => {
+  const array = RPC_LIST.filter((item) => item != rpc);
+  return array[Math.floor(Math.random() * array.length)];
+};
