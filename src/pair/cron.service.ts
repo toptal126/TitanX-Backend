@@ -4,35 +4,20 @@ import { Cron } from '@nestjs/schedule';
 import { Model } from 'mongoose';
 import {
   BIG_TOKEN_ADDRESSES,
-  BUSD_ADDRESS,
-  DEAD_ADDRESS,
   DEX_FACTORIES_ADDRESS,
   LOG_TOPIC_SWAP,
   PANCAKESWAP_V2_FACTORY,
   WBNB_ADDRESS,
   WBNB_BUSD_PAIR,
-  ZERO_ADDRESS,
 } from 'src/helpers/constants';
 import * as ABI_ERC20 from 'src/helpers/abis/ABI_ERC20.json';
 import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
 import * as ABI_UNISWAP_V2_PAIR from 'src/helpers/abis/ABI_UNISWAP_V2_PAIR.json';
 
-import {
-  BitQueryTradeInterval,
-  CoinPriceCandle,
-  CoinPriceQuery,
-  TokenInformation,
-} from './interfaces/coinPrice.interface';
-import {
-  CONTRACT_CREATION_BLOCK,
-  DEX_TRADE_PER_INTERVAL,
-} from './query/bitquery.query';
 import { CoinPrice, CoinPriceDocument } from './schemas/coinPrice.schema';
 import axios from 'axios';
 import { Pair, PairDocument } from './schemas/pair.schema';
 require('dotenv').config();
-
-const CURRENT_API_KEY_ARRAY = process.env.BITQUERY_API_KEY_ARRAY.split(' ');
 
 @Injectable()
 export class CronService {
@@ -65,6 +50,11 @@ export class CronService {
   // BNB Price Update
   @Cron('5 * * * * *')
   async handleCron() {
+    const factoryContract = new this.web3.eth.Contract(
+      ABI_UNISWAP_V2_FACTORY,
+      PANCAKESWAP_V2_FACTORY,
+    );
+    this.getPairInfobyIndex(996881, factoryContract);
     try {
       this.logger.debug(
         `Called when the current second is 5 - ${new Date().getTime() / 1000}`,
@@ -162,7 +152,7 @@ export class CronService {
     // lastPair = startPair + 1;
     console.log(startPair, lastPair);
 
-    for (let i = startPair; i < lastPair; i += batchCount) {
+    for (let i = startPair - batchCount; i < lastPair; i += batchCount) {
       let idArr = Array.from(
         { length: batchCount },
         (_, offset) => i + offset,
@@ -282,7 +272,7 @@ export class CronService {
           reserve_usd,
         };
 
-        // console.log(updateDBItem);
+        console.log(pairIndex);
         this.pairModel
           .findOneAndUpdate({ pairIndex }, updateDBItem, {
             upsert: true,
