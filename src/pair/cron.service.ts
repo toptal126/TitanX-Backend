@@ -133,6 +133,44 @@ export class CronService {
     }
   }
 
+  @Cron('0 */30 * * * *')
+  async fetchLast10000() {
+    console.log('every 30 minute');
+
+    let batchCount = 100;
+
+    const factoryContract = new this.web3.eth.Contract(
+      ABI_UNISWAP_V2_FACTORY,
+      PANCAKESWAP_V2_FACTORY,
+    );
+    let [loggedLastPair] = await Promise.all([
+      this.pairModel.findOne().sort({ pairIndex: -1 }).limit(1).exec(),
+    ]);
+
+    let lastPair = loggedLastPair.pairIndex;
+    let startPair = lastPair - 10000;
+    // lastPair = startPair + 1;
+    console.log(startPair, lastPair);
+    return;
+
+    for (let i = startPair - batchCount; i < lastPair; i += batchCount) {
+      let idArr = Array.from(
+        { length: batchCount },
+        (_, offset) => i + offset,
+      ).filter((item) => item < lastPair);
+
+      // const pairInfoArr =
+      await Promise.all(
+        idArr.map((pairIndex) =>
+          this.getPairInfobyIndex(pairIndex, factoryContract),
+        ),
+      );
+      // console.log(pairInfoArr);
+    }
+
+    return lastPair;
+  }
+
   @Cron('0 */5 * * * *')
   async fetchNewPairs() {
     console.log('every 5 minute');
@@ -201,7 +239,6 @@ export class CronService {
         pairContract.methods.getReserves().call(),
       ]);
 
-      if (reserves._reserve0 == 0 || reserves._reserve1 == 0) return;
       try {
         const token0Contract = this.getERC20Contract(token0);
         const token1Contract = this.getERC20Contract(token1);
@@ -248,11 +285,13 @@ export class CronService {
             10 ** token0Decimals;
           reserve_usd = 2 * (reserve1 < reserve0 ? reserve1 : reserve0);
         }
-
-        pcsV2ResultToken1.data.price =
-          (reserve_usd / 2 / reserves._reserve1) * 10 ** token1Decimals;
-        pcsV2ResultToken0.data.price =
-          (reserve_usd / 2 / reserves._reserve0) * 10 ** token0Decimals;
+        if (reserves._reserve0 == 0 || reserves._reserve1 == 0) {
+        } else {
+          pcsV2ResultToken1.data.price =
+            (reserve_usd / 2 / reserves._reserve1) * 10 ** token1Decimals;
+          pcsV2ResultToken0.data.price =
+            (reserve_usd / 2 / reserves._reserve0) * 10 ** token0Decimals;
+        }
 
         const updateDBItem = {
           pairIndex,
