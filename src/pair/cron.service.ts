@@ -201,6 +201,7 @@ export class CronService {
   @Cron('0 */5 * * * *')
   async fetchNewPairs() {
     console.log('every 5 minute');
+    axios.get('https://data.titanx.org/coinprice');
 
     let batchCount = 5;
 
@@ -235,6 +236,15 @@ export class CronService {
     return lastPair;
   }
 
+  //990878
+  @Cron('*/5 * * * * *')
+  testFunction() {
+    const factoryContract = new this.web3.eth.Contract(
+      ABI_UNISWAP_V2_FACTORY,
+      PANCAKESWAP_V2_FACTORY,
+    );
+  }
+
   async tokenInfoPCSV2Api(address, pairIndex) {
     let i = 0;
     while (i < 5)
@@ -256,6 +266,7 @@ export class CronService {
 
   async getPairInfobyIndex(pairIndex, pcsV2Contract) {
     try {
+      console.log(pairIndex);
       const pairAddress = await pcsV2Contract.methods
         .allPairs(pairIndex)
         .call();
