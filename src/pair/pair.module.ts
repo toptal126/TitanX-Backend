@@ -6,9 +6,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Pair, PairSchema } from './schemas/pair.schema';
 import { CoinPrice, CoinPriceSchema } from './schemas/coinPrice.schema';
 import { CoinPriceController } from './coinPrice.controller';
+import { CronService } from './cron.service';
 
 @Module({
-  providers: [PairService, CoinPriceService],
+  providers: [PairService, CoinPriceService, CronService],
   controllers: [PairController, CoinPriceController],
   imports: [
     MongooseModule.forFeature(

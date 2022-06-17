@@ -1,16 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Cron } from '@nestjs/schedule';
 import { Model } from 'mongoose';
 import {
   BUSD_ADDRESS,
   DEAD_ADDRESS,
-  LOG_TOPIC_SWAP,
+  DEX_FACTORIES_ADDRESS,
   WBNB_ADDRESS,
-  WBNB_BUSD_PAIR,
-  ZERO_ADDRESS,
 } from 'src/helpers/constants';
 import * as ABI_ERC20 from 'src/helpers/abis/ABI_ERC20.json';
+import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
+
 import {
   BitQueryTradeInterval,
   CoinPriceCandle,
@@ -41,7 +40,7 @@ export class CoinPriceService {
     this.web3 = new Web3('https://bsc-dataseed.binance.org/');
   }
 
-  public async removeDoubledPairs() {
+  public async removeDoubledCoinHistory() {
     const doubledPairs = await this.model
       .aggregate([
         {
@@ -89,86 +88,6 @@ export class CoinPriceService {
       .limit(1)
       .exec();
     return coinPrices[0];
-  }
-
-  @Cron('5 * * * * *')
-  async handleCron() {
-    try {
-      this.logger.debug(
-        `Called when the current second is 5 - ${new Date().getTime() / 1000}`,
-      );
-      const [[latestDBItem], blockNumber] = await Promise.all([
-        this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
-        this.web3.eth.getBlockNumber(),
-      ]);
-
-      const blockNumberArray: number[] = Array.from(
-        { length: blockNumber - latestDBItem.toBlock },
-        (_, offset) => offset + latestDBItem.toBlock + 1,
-      );
-
-      const timeStampArray = await Promise.all(
-        blockNumberArray.map((blockNumber) =>
-          this.getBlockTimeStampByNumber(blockNumber),
-        ),
-      );
-
-      let block2timeStamp = [];
-      blockNumberArray.forEach((item, index) => {
-        block2timeStamp[`_${item}`] = timeStampArray[index];
-      });
-
-      this.logger.debug(
-        `${blockNumberArray.length}, ${timeStampArray.length}, ${block2timeStamp}`,
-      );
-
-      const logs = await this.web3.eth.getPastLogs({
-        address: WBNB_BUSD_PAIR,
-        fromBlock: latestDBItem.toBlock,
-        toBlock: blockNumber,
-        topics: [LOG_TOPIC_SWAP],
-      });
-
-      let processingTimeStamp = latestDBItem.timeStamp;
-      let fromBlock = latestDBItem.toBlock;
-      logs.forEach((item) => {
-        const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
-        if (logTimeStamp > processingTimeStamp) {
-          const amount0In = parseInt('0x' + item.data.slice(2, 66));
-          const amount0Out = parseInt('0x' + item.data.slice(130, 194));
-          const amount1In = parseInt('0x' + item.data.slice(66, 130));
-          const amount1Out = parseInt('0x' + item.data.slice(194));
-          const usdPrice = (amount1In + amount1Out) / (amount0In + amount0Out);
-          if (usdPrice === 0 || usdPrice === Infinity || usdPrice === null)
-            return;
-
-          processingTimeStamp += 60;
-
-          const updateDBItem = {
-            timeStamp: processingTimeStamp,
-            usdPrice,
-            fromBlock,
-            toBlock: item.blockNumber,
-            updatedAt: new Date().getTime(),
-          };
-          fromBlock = item.blockNumber;
-
-          // this.logger.debug(updateDBItem);
-
-          this.model
-            .findOneAndUpdate(
-              { timeStamp: processingTimeStamp },
-              updateDBItem,
-              {
-                upsert: true,
-              },
-            )
-            .exec();
-        }
-      });
-    } catch (error) {
-      this.logger.error(error);
-    }
   }
 
   async getBlockTimeStampByNumber(blockNumber: number) {
@@ -438,5 +357,15 @@ export class CoinPriceService {
       CONTRACT_CREATION_BLOCK(contractAddress),
     );
     return creationBlock.data.ethereum.smartContractCalls[0].block;
+  }
+
+  async findPairsFromDEX(baseTokenAddress: string): Promise<Pair[]> {
+    let factoryContracts: [any];
+    DEX_FACTORIES_ADDRESS.forEach((item) => {
+      factoryContracts.push(
+        new this.web3.eth.Contract(ABI_UNISWAP_V2_FACTORY, item),
+      );
+    });
+    return [];
   }
 }

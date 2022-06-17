@@ -6,31 +6,31 @@ export type PairDocument = Pair & Document;
 @Schema({ collection: 'bsc' })
 export class Pair {
   @Prop({ required: true })
-  pairIndex: Number;
+  pairIndex: number;
 
   @Prop({ required: true })
   pairAddress: string;
 
   @Prop({ required: true })
-  reserve0: Number;
+  reserve0: number;
 
   @Prop({ required: true })
-  reserve1: Number;
+  reserve1: number;
 
   @Prop({ required: true })
-  reserve_usd: Number;
+  reserve_usd: number;
 
   @Prop({ required: true })
   token0: string;
 
   @Prop({ required: true })
-  token0Decimals: Number;
+  token0Decimals: number;
 
   @Prop({ required: true })
   token0Name: string;
 
   @Prop({ required: true })
-  token0Price: Number;
+  token0Price: number;
 
   @Prop({ required: true })
   token0Symbol: string;
@@ -39,13 +39,13 @@ export class Pair {
   token1: string;
 
   @Prop({ required: true })
-  token1Decimals: Number;
+  token1Decimals: number;
 
   @Prop({ required: true })
   token1Name: string;
 
   @Prop({ required: true })
-  token1Price: Number;
+  token1Price: number;
 
   @Prop({ required: true })
   token1Symbol: string;
