@@ -50,11 +50,6 @@ export class CronService {
   // BNB Price Update
   @Cron('5 * * * * *')
   async handleCron() {
-    const factoryContract = new this.web3.eth.Contract(
-      ABI_UNISWAP_V2_FACTORY,
-      PANCAKESWAP_V2_FACTORY,
-    );
-    this.getPairInfobyIndex(996881, factoryContract);
     try {
       this.logger.debug(
         `Called when the current second is 5 - ${new Date().getTime() / 1000}`,
@@ -133,7 +128,8 @@ export class CronService {
     }
   }
 
-  @Cron('0 */30 * * * *')
+  // refetch latest 10000 pairs every hour at 0:30s
+  @Cron('30 0 * * * *')
   async fetchLast10000() {
     console.log('every 30 minute');
 
@@ -168,6 +164,40 @@ export class CronService {
     return lastPair;
   }
 
+  // refetch pairs which is larget than 10k every hour at 30:30s
+  @Cron('30 30 * * * *')
+  // @Cron('*/5 * * * * *')
+  async fetchTopPairs() {
+    console.log('fetchTopPairs');
+    let cap = 10000;
+    let batchCount = 100;
+
+    const factoryContract = new this.web3.eth.Contract(
+      ABI_UNISWAP_V2_FACTORY,
+      PANCAKESWAP_V2_FACTORY,
+    );
+
+    let topPairIndex = await this.pairModel
+      .find({ reserve_usd: { $gt: cap } })
+      .sort({ reserve_usd: -1 })
+      .exec();
+
+    for (let i = 0; i < topPairIndex.length; i += batchCount) {
+      let idArr = Array.from(
+        { length: batchCount },
+        (_, offset) => topPairIndex.at(i + offset)?.pairIndex,
+      ).filter((item) => item !== undefined);
+
+      await Promise.all(
+        idArr.map((pairIndex) =>
+          this.getPairInfobyIndex(pairIndex, factoryContract),
+        ),
+      );
+      console.log(`updating top processing ${batchCount} from ${i} done!`);
+    }
+  }
+
+  // refetch new pairs every 5 minutes
   @Cron('0 */5 * * * *')
   async fetchNewPairs() {
     console.log('every 5 minute');
