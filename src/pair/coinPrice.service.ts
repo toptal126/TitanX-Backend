@@ -33,7 +33,6 @@ export class CoinPriceService {
   constructor(
     @InjectModel(CoinPrice.name)
     private readonly model: Model<CoinPriceDocument>,
-    private readonly cronService: CronService,
   ) {
     const Web3 = require('web3');
     this.web3 = new Web3('https://bsc-dataseed.binance.org/');

@@ -5,8 +5,11 @@ export type PairDocument = Pair & Document;
 
 @Schema({ collection: 'bsc' })
 export class Pair {
-  @Prop({ required: true })
-  pairIndex: number;
+  @Prop({ required: true, default: 0 })
+  dexId?: number;
+
+  @Prop({ required: true, default: -1 })
+  pairIndex?: number;
 
   @Prop({ required: true })
   pairAddress: string;

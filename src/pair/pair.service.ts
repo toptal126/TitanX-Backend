@@ -11,6 +11,7 @@ import { Pair, PairDocument } from './schemas/pair.schema';
 
 import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
 import * as ABI_UNISWAP_V2_PAIR from 'src/helpers/abis/ABI_UNISWAP_V2_PAIR.json';
+import { CronService } from './cron.service';
 
 @Injectable()
 export class PairService {
@@ -18,6 +19,7 @@ export class PairService {
 
   constructor(
     @InjectModel(Pair.name) private readonly model: Model<PairDocument>,
+    private readonly cronService: CronService,
   ) {
     const Web3 = require('web3');
     this.web3 = new Web3('https://bsc-dataseed.binance.org/');
@@ -136,13 +138,36 @@ export class PairService {
         ),
       ),
     );
-    pairAddresses = pairAddresses.filter((item) => item != 0);
-    let pairContracts = pairAddresses.map(
-      (address) => new this.web3.eth.Contract(ABI_UNISWAP_V2_PAIR, address),
+    let dexIdList = [].concat.apply(
+      [],
+      DEX_LIST.map((DEX, index) =>
+        BIG_TOKEN_ADDRESSES.map((token) => {
+          return { index, token };
+        }),
+      ),
     );
-    // getPairInfobyIndex
-    console.log(pairAddresses);
+    dexIdList = dexIdList.filter((item, index) => pairAddresses[index] != 0);
+    pairAddresses = pairAddresses.filter((item) => item != 0);
 
-    return [];
+    let pairArray = await Promise.all(
+      pairAddresses.map((pairAddress) =>
+        this.cronService.getPairInfoByAddress(pairAddress),
+      ),
+    );
+    const result = pairArray.map((resultItem, index) => {
+      const updateDBItem = { ...resultItem, dexId: dexIdList[index].index };
+      this.model
+        .findOneAndUpdate(
+          { pairAddress: updateDBItem.pairAddress },
+          updateDBItem,
+          {
+            upsert: true,
+          },
+        )
+        .exec();
+      return updateDBItem;
+    });
+
+    return result;
   }
 }

@@ -288,17 +288,17 @@ export class CronService {
           .allPairs(pairIndex)
           .call();
 
-        const updateDBItem = await this.getPairInfoByAddress(
-          pairAddress,
-          pairIndex,
-        );
-        if (updateDBItem)
+        const result = await this.getPairInfoByAddress(pairAddress);
+        if (result) {
+          let updateDBItem = { ...result, pairIndex };
           this.pairModel
             .findOneAndUpdate({ pairIndex }, updateDBItem, {
               upsert: true,
             })
             .exec();
-        return updateDBItem;
+          return updateDBItem;
+        }
+        return null;
       } catch (error) {
         console.log('error', pairIndex);
         i++;
@@ -307,7 +307,7 @@ export class CronService {
     }
   }
 
-  async getPairInfoByAddress(pairAddress: string, pairIndex: number = 1) {
+  async getPairInfoByAddress(pairAddress: string) {
     let i = 0;
     while (i < 5) {
       try {
@@ -372,7 +372,6 @@ export class CronService {
         }
 
         const updateDBItem = {
-          pairIndex,
           pairAddress,
           token0,
           token1,
@@ -390,7 +389,7 @@ export class CronService {
         };
         return updateDBItem;
       } catch (error) {
-        console.log('error with processing pair', pairAddress, pairIndex);
+        console.log('error with processing pair', pairAddress);
         i++;
         this.changeWeb3RpcUrl();
       }

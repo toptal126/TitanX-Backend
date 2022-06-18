@@ -48,16 +48,16 @@ export const DEX_LIST = [
     factory_address: '0xca143ce32fe78f1f7019d7d551a6402fc5350c73', // Pancakeswap
   },
   {
+    name: 'Biswap',
+    factory_address: '0x858e3312ed3a876947ea49d572a7c42de08af7ee', // Biswap
+  },
+  {
     name: 'ApeSwap',
     factory_address: '0x0841bd0b734e4f5853f0dd8d7ea041c241fb0da6', // ApeSwap
   },
   {
     name: 'BakerySwap',
     factory_address: '0x01bf7c66c6bd861915cdaae475042d3c4bae16a7', // BakerySwap
-  },
-  {
-    name: 'Biswap',
-    factory_address: '0x858e3312ed3a876947ea49d572a7c42de08af7ee', // Biswap
   },
   {
     name: 'NomiSwap',
