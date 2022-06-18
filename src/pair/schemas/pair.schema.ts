@@ -50,8 +50,8 @@ export class Pair {
   @Prop({ required: true })
   token1Symbol: string;
 
-  @Prop()
-  updatedAt?: Date;
+  @Prop({ required: true, default: new Date().getTime() })
+  createdAt?: Date;
 }
 
 export const PairSchema = SchemaFactory.createForClass(Pair);

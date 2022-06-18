@@ -33,4 +33,10 @@ export class PairController {
   async search(@Param('query') query: string): Promise<Pair[]> {
     return await this.service.search(query);
   }
+  @Get('/dex/:baseTokenAddress')
+  async findPairsFromDEX(
+    @Param('baseTokenAddress') baseTokenAddress: string,
+  ): Promise<Pair[]> {
+    return await this.service.findPairsFromDEX(baseTokenAddress);
+  }
 }

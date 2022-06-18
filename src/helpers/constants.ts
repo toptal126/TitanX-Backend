@@ -12,6 +12,11 @@ export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export const BIG_TOKEN_ADDRESSES = [
   {
+    // Wrapped BNB, WBNB
+    address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+    isPeggedToBNB: true,
+  },
+  {
     // Tether USD, USDT
     address: '0x55d398326f99059fF775485246999027B3197955',
     isStable: true,
@@ -35,19 +40,29 @@ export const BIG_TOKEN_ADDRESSES = [
     isStable: true,
     price: 1,
   },
-  {
-    // Wrapped BNB, WBNB
-    address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-    isPeggedToBNB: true,
-  },
 ];
 
-export const DEX_FACTORIES_ADDRESS = [
-  '0xca143ce32fe78f1f7019d7d551a6402fc5350c73', // Pancakeswap
-  '0x0841bd0b734e4f5853f0dd8d7ea041c241fb0da6', // ApeSwap
-  '0x01bf7c66c6bd861915cdaae475042d3c4bae16a7', // BakerySwap
-  '0x858e3312ed3a876947ea49d572a7c42de08af7ee', // Biswap
-  // "0xd6715a8be3944ec72738f0bfdc739d48c3c29349", //NomiSwap
+export const DEX_LIST = [
+  {
+    name: 'Pancakeswap',
+    factory_address: '0xca143ce32fe78f1f7019d7d551a6402fc5350c73', // Pancakeswap
+  },
+  {
+    name: 'ApeSwap',
+    factory_address: '0x0841bd0b734e4f5853f0dd8d7ea041c241fb0da6', // ApeSwap
+  },
+  {
+    name: 'BakerySwap',
+    factory_address: '0x01bf7c66c6bd861915cdaae475042d3c4bae16a7', // BakerySwap
+  },
+  {
+    name: 'Biswap',
+    factory_address: '0x858e3312ed3a876947ea49d572a7c42de08af7ee', // Biswap
+  },
+  {
+    name: 'NomiSwap',
+    factory_address: '0xd6715a8be3944ec72738f0bfdc739d48c3c29349', //NomiSwap
+  },
 ];
 
 const RPC_LIST = [

@@ -25,7 +25,8 @@ export class CoinPriceController {
 
   @Get()
   async index() {
-    return await this.service.removeDoubledCoinHistory();
+    return 'Coin Price Controller';
+    // return await this.service.removeDoubledCoinHistory();
   }
 
   @Get('latest')

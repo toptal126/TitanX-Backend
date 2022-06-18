@@ -2,17 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
+  BIG_TOKEN_ADDRESSES,
   BUSD_ADDRESS,
-  DEX_FACTORIES_ADDRESS,
+  DEX_LIST,
   WBNB_ADDRESS,
 } from 'src/helpers/constants';
 import { Pair, PairDocument } from './schemas/pair.schema';
 
+import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
+import * as ABI_UNISWAP_V2_PAIR from 'src/helpers/abis/ABI_UNISWAP_V2_PAIR.json';
+
 @Injectable()
 export class PairService {
+  private web3;
+
   constructor(
     @InjectModel(Pair.name) private readonly model: Model<PairDocument>,
-  ) {}
+  ) {
+    const Web3 = require('web3');
+    this.web3 = new Web3('https://bsc-dataseed.binance.org/');
+  }
 
   async findTop(length: number): Promise<Pair[]> {
     return await this.model
@@ -90,13 +99,50 @@ export class PairService {
     return result;
   }
 
+  async getPairInfoByAddress(pairAddress: string) {
+    const pairContract = new this.web3.eth.Contract(
+      ABI_UNISWAP_V2_PAIR,
+      pairAddress,
+    );
+
+    const [token0, token1, reserves] = await Promise.all([
+      pairContract.methods.token0().call(),
+      pairContract.methods.token1().call(),
+      pairContract.methods.getReserves().call(),
+    ]);
+    // let pair: Pair;
+  }
+
   async findPairsFromDEX(baseTokenAddress: string): Promise<Pair[]> {
-    let factoryContracts: [any];
-    // DEX_FACTORIES_ADDRESS.forEach((item) => {
-    //   factoryContracts.push(
-    //     new this.web3.eth.Contract(ABI_UNISWAP_V2_FACTORY, item),
-    //   );
-    // });
+    let factoryContracts = [];
+
+    DEX_LIST.forEach((item) => {
+      factoryContracts.push(
+        new this.web3.eth.Contract(
+          ABI_UNISWAP_V2_FACTORY,
+          item.factory_address,
+        ),
+      );
+    });
+    let pairAddresses = await Promise.all(
+      [].concat.apply(
+        [],
+        factoryContracts.map((factoryContract) =>
+          BIG_TOKEN_ADDRESSES.map((token) =>
+            factoryContract.methods
+              .getPair(baseTokenAddress, token.address)
+              .call(),
+          ),
+        ),
+      ),
+    );
+    pairAddresses = pairAddresses.filter((item) => item != 0);
+    let pairContracts = pairAddresses.map(
+      (address) => new this.web3.eth.Contract(ABI_UNISWAP_V2_PAIR, address),
+    );
+    // getPairInfobyIndex
+    console.log(pairAddresses);
+
     return [];
   }
 }

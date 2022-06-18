@@ -4,11 +4,9 @@ import { Model } from 'mongoose';
 import {
   BUSD_ADDRESS,
   DEAD_ADDRESS,
-  DEX_FACTORIES_ADDRESS,
   WBNB_ADDRESS,
 } from 'src/helpers/constants';
 import * as ABI_ERC20 from 'src/helpers/abis/ABI_ERC20.json';
-import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
 
 import {
   BitQueryTradeInterval,
@@ -23,6 +21,7 @@ import {
 import { CoinPrice, CoinPriceDocument } from './schemas/coinPrice.schema';
 import axios from 'axios';
 import { Pair } from './schemas/pair.schema';
+import { CronService } from './cron.service';
 require('dotenv').config();
 
 const CURRENT_API_KEY_ARRAY = process.env.BITQUERY_API_KEY_ARRAY.split(' ');
@@ -30,34 +29,14 @@ const CURRENT_API_KEY_ARRAY = process.env.BITQUERY_API_KEY_ARRAY.split(' ');
 @Injectable()
 export class CoinPriceService {
   private web3;
-  private readonly logger = new Logger(CoinPriceService.name);
 
   constructor(
     @InjectModel(CoinPrice.name)
     private readonly model: Model<CoinPriceDocument>,
+    private readonly cronService: CronService,
   ) {
     const Web3 = require('web3');
     this.web3 = new Web3('https://bsc-dataseed.binance.org/');
-  }
-
-  public async removeDoubledCoinHistory() {
-    const doubledPairs = await this.model
-      .aggregate([
-        {
-          $group: {
-            _id: { timeStamp: '$timeStamp' },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { _id: -1 } },
-        { $match: { count: { $gt: 1 } } },
-      ])
-      .limit(100)
-      .exec();
-    doubledPairs.forEach((item) => {
-      this.model.findOneAndDelete({ timeStamp: item._id.timeStamp }).exec();
-    });
-    return doubledPairs;
   }
 
   private getERC20Contract(tokenAddress: string) {
@@ -358,15 +337,5 @@ export class CoinPriceService {
       CONTRACT_CREATION_BLOCK(contractAddress),
     );
     return creationBlock.data.ethereum.smartContractCalls[0].block;
-  }
-
-  async findPairsFromDEX(baseTokenAddress: string): Promise<Pair[]> {
-    let factoryContracts: [any];
-    DEX_FACTORIES_ADDRESS.forEach((item) => {
-      factoryContracts.push(
-        new this.web3.eth.Contract(ABI_UNISWAP_V2_FACTORY, item),
-      );
-    });
-    return [];
   }
 }
