@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BUSD_ADDRESS, WBNB_ADDRESS } from 'src/helpers/constants';
+import {
+  BUSD_ADDRESS,
+  DEX_FACTORIES_ADDRESS,
+  WBNB_ADDRESS,
+} from 'src/helpers/constants';
 import { Pair, PairDocument } from './schemas/pair.schema';
 
 @Injectable()
@@ -84,5 +88,15 @@ export class PairService {
         result = item;
     });
     return result;
+  }
+
+  async findPairsFromDEX(baseTokenAddress: string): Promise<Pair[]> {
+    let factoryContracts: [any];
+    // DEX_FACTORIES_ADDRESS.forEach((item) => {
+    //   factoryContracts.push(
+    //     new this.web3.eth.Contract(ABI_UNISWAP_V2_FACTORY, item),
+    //   );
+    // });
+    return [];
   }
 }

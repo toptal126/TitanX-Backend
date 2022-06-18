@@ -81,6 +81,7 @@ export class CoinPriceService {
       .exec();
     return coinPrices[0];
   }
+
   async findByTimeStamp(timeStamp): Promise<CoinPrice> {
     const coinPrices = await this.model
       .find({ timeStamp: { $gte: timeStamp } })

@@ -137,6 +137,7 @@ export class CronService {
               .exec();
           }
         });
+        return;
       } catch (error) {
         this.logger.error(error);
         this.changeWeb3RpcUrl();
@@ -392,13 +393,4 @@ export class CronService {
     }
   }
 
-  async findPairsFromDEX(baseTokenAddress: string): Promise<Pair[]> {
-    let factoryContracts: [any];
-    DEX_FACTORIES_ADDRESS.forEach((item) => {
-      factoryContracts.push(
-        new this.web3.eth.Contract(ABI_UNISWAP_V2_FACTORY, item),
-      );
-    });
-    return [];
-  }
 }
