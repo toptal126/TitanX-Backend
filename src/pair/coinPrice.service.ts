@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -298,46 +298,63 @@ export class CoinPriceService {
     tokenAddress: string,
     bestPair: Pair,
   ): Promise<TokenInformation> {
-    const st = new Date().getTime();
+    try {
+      this.web3.utils.toChecksumAddress(tokenAddress);
+    } catch (error) {
+      throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
+    }
 
-    const tokenContract = this.getERC20Contract(tokenAddress);
-    const [/*{ data: PCS_API_RESULT }*/ minted, decimals, dead_amount] =
-      await Promise.all([
-        // axios.get(`https://api.pancakeswap.info/api/v2/tokens/${tokenAddress}`),
-        tokenContract.methods.totalSupply().call(),
-        tokenContract.methods.decimals().call(),
-        tokenContract.methods.balanceOf(DEAD_ADDRESS).call(),
-      ]);
-    let isToken1BNB: boolean = true;
-    let isToken1BUSD: boolean = false;
-    let isBUSDPaired: boolean = false;
-    if (bestPair.token1.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
-      isToken1BNB = true;
-    if (bestPair.token0.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
-      isToken1BNB = false;
-    if (bestPair.token1.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()) {
-      isBUSDPaired = true;
-      isToken1BUSD = true;
+    const st = new Date().getTime();
+    let i = 0;
+    while (i < 5) {
+      try {
+        const tokenContract = this.getERC20Contract(tokenAddress);
+        const [/*{ data: PCS_API_RESULT }*/ minted, decimals, dead_amount] =
+          await Promise.all([
+            // axios.get(`https://api.pancakeswap.info/api/v2/tokens/${tokenAddress}`),
+            tokenContract.methods.totalSupply().call(),
+            tokenContract.methods.decimals().call(),
+            tokenContract.methods.balanceOf(DEAD_ADDRESS).call(),
+          ]);
+        let isToken1BNB: boolean = true;
+        let isToken1BUSD: boolean = false;
+        let isBUSDPaired: boolean = false;
+        if (bestPair.token1.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
+          isToken1BNB = true;
+        if (bestPair.token0.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
+          isToken1BNB = false;
+        if (
+          bestPair.token1.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()
+        ) {
+          isBUSDPaired = true;
+          isToken1BUSD = true;
+        }
+        if (
+          bestPair.token0.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()
+        ) {
+          isBUSDPaired = true;
+          isToken1BUSD = false;
+        }
+        let result: TokenInformation = {
+          id: tokenAddress,
+          // price: parseFloat(PCS_API_RESULT.data?.price),
+          // symbol: PCS_API_RESULT.data?.symbol,
+          // name: PCS_API_RESULT.data?.name,
+          minted: parseInt(minted) / 10 ** decimals,
+          burned: parseInt(dead_amount) / 10 ** decimals,
+          decimals: parseInt(decimals),
+          pair: bestPair.pairAddress,
+          isToken1BNB,
+          isToken1BUSD,
+          isBUSDPaired,
+        };
+        console.log(`took: ${new Date().getTime() - st} ms`);
+        return result;
+      } catch (error) {
+        i++;
+        this.changeWeb3RpcUrl();
+      }
     }
-    if (bestPair.token0.toLocaleLowerCase() === BUSD_ADDRESS.toLowerCase()) {
-      isBUSDPaired = true;
-      isToken1BUSD = false;
-    }
-    let result: TokenInformation = {
-      id: tokenAddress,
-      // price: parseFloat(PCS_API_RESULT.data?.price),
-      // symbol: PCS_API_RESULT.data?.symbol,
-      // name: PCS_API_RESULT.data?.name,
-      minted: parseInt(minted) / 10 ** decimals,
-      burned: parseInt(dead_amount) / 10 ** decimals,
-      decimals: parseInt(decimals),
-      pair: bestPair.pairAddress,
-      isToken1BNB,
-      isToken1BUSD,
-      isBUSDPaired,
-    };
-    console.log(`took: ${new Date().getTime() - st} ms`);
-    return result;
   }
 
   async getCreationBlock(contractAddress: string) {
