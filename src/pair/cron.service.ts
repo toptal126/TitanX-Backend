@@ -199,16 +199,26 @@ export class CronService {
       .exec();
 
     for (let i = 0; i < topPairIndex.length; i += batchCount) {
-      let idArr = Array.from(
+      let addressArr = Array.from(
         { length: batchCount },
-        (_, offset) => topPairIndex.at(i + offset)?.pairIndex,
+        (_, offset) => topPairIndex.at(i + offset)?.pairAddress,
       ).filter((item) => item !== undefined);
 
-      await Promise.all(
-        idArr.map((pairIndex) =>
-          this.getPairInfobyIndex(pairIndex, factoryContract),
-        ),
+      const resultArray = await Promise.all(
+        addressArr.map((pairAddress) => this.getPairInfoByAddress(pairAddress)),
       );
+      resultArray.forEach((resultItem) => {
+        if (resultItem === null) return;
+        this.model
+          .findOneAndUpdate(
+            { pairAddress: resultItem.pairAddress },
+            resultItem,
+            {
+              upsert: true,
+            },
+          )
+          .exec();
+      });
       console.log(`updating top processing ${batchCount} from ${i} done!`);
     }
   }

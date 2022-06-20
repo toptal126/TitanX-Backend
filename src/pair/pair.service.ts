@@ -208,6 +208,7 @@ export class PairService {
       swapLogsQuery.toBlock = await this.web3.eth.getBlockNumber();
     }
     let toBlock: number = swapLogsQuery.toBlock;
+    let fromBlock: number;
     let scanBlockRange: number = 100;
     let result = [];
     let pairContract;
@@ -227,13 +228,22 @@ export class PairService {
       result.length < swapLogsQuery.queryCnt &&
       toBlock > pairCreation.height
     ) {
-      let logs: any[] = await pairContract.getPastEvents('Swap', {
-        toBlock: toBlock,
-        fromBlock: Math.max(toBlock - scanBlockRange, pairCreation.height),
-      });
+      fromBlock = Math.max(toBlock - scanBlockRange, pairCreation.height);
+      const blockQueryRange = {
+        toBlock,
+        fromBlock,
+      };
+      if (scanBlockRange >= 5000) {
+        delete blockQueryRange.toBlock;
+      }
+      console.log(blockQueryRange);
+      let logs: any[] = await pairContract.getPastEvents(
+        'Swap',
+        blockQueryRange,
+      );
       toBlock = toBlock - scanBlockRange - 1;
       if (logs.length < 10) {
-        scanBlockRange = Math.min(5000, scanBlockRange * 5);
+        scanBlockRange = scanBlockRange * 5;
       }
       if (logs.length) {
         logs = logs.map((item) => {
@@ -254,6 +264,9 @@ export class PairService {
       );
       // return logs.reverse();
     }
-    return result.length > 100 ? result.slice(-100) : result;
+    return {
+      earliestBlockNumber: fromBlock,
+      logs: result.length > 100 ? result.slice(-100) : result,
+    };
   }
 }
