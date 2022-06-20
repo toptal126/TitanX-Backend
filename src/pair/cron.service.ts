@@ -5,7 +5,6 @@ import { Model } from 'mongoose';
 import {
   BIG_TOKEN_ADDRESSES,
   getRandRpcElseOne,
-  LOG_TOPIC_SWAP,
   PANCAKESWAP_V2_FACTORY,
   WBNB_ADDRESS,
   WBNB_BUSD_PAIR,
@@ -53,95 +52,6 @@ export class CronService {
   async getBlockTimeStampByNumber(blockNumber: number) {
     const block = await this.web3.eth.getBlock(blockNumber);
     return block.timestamp;
-  }
-
-  // BNB Price Update
-  @Cron('5 * * * * *')
-  async updateCoinPrice() {
-    let i = 0;
-    while (i < 5) {
-      try {
-        this.logger.debug(
-          `Called when the current second is 5 - ${
-            new Date().getTime() / 1000
-          }`,
-        );
-        const [[latestDBItem], blockNumber] = await Promise.all([
-          this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
-          this.web3.eth.getBlockNumber(),
-        ]);
-
-        const blockNumberArray: number[] = Array.from(
-          { length: blockNumber - latestDBItem.toBlock },
-          (_, offset) => offset + latestDBItem.toBlock + 1,
-        );
-
-        const timeStampArray = await Promise.all(
-          blockNumberArray.map((blockNumber) =>
-            this.getBlockTimeStampByNumber(blockNumber),
-          ),
-        );
-
-        let block2timeStamp = [];
-        blockNumberArray.forEach((item, index) => {
-          block2timeStamp[`_${item}`] = timeStampArray[index];
-        });
-
-        this.logger.debug(
-          `${blockNumberArray.length}, ${timeStampArray.length}, ${block2timeStamp}`,
-        );
-
-        const logs = await this.web3.eth.getPastLogs({
-          address: WBNB_BUSD_PAIR,
-          fromBlock: latestDBItem.toBlock,
-          toBlock: blockNumber,
-          topics: [LOG_TOPIC_SWAP],
-        });
-
-        let processingTimeStamp = latestDBItem.timeStamp;
-        let fromBlock = latestDBItem.toBlock;
-        logs.forEach((item) => {
-          const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
-          if (logTimeStamp > processingTimeStamp) {
-            const amount0In = parseInt('0x' + item.data.slice(2, 66));
-            const amount0Out = parseInt('0x' + item.data.slice(130, 194));
-            const amount1In = parseInt('0x' + item.data.slice(66, 130));
-            const amount1Out = parseInt('0x' + item.data.slice(194));
-            const usdPrice =
-              (amount1In + amount1Out) / (amount0In + amount0Out);
-            if (usdPrice === 0 || usdPrice === Infinity || usdPrice === null)
-              return;
-
-            processingTimeStamp += 60;
-
-            const updateDBItem = {
-              timeStamp: processingTimeStamp,
-              usdPrice,
-              fromBlock,
-              toBlock: item.blockNumber,
-              updatedAt: new Date().getTime(),
-            };
-            fromBlock = item.blockNumber;
-
-            // this.logger.debug(updateDBItem);
-
-            this.model
-              .findOneAndUpdate(
-                { timeStamp: processingTimeStamp },
-                updateDBItem,
-                {
-                  upsert: true,
-                },
-              )
-              .exec();
-          }
-        });
-        return;
-      } catch (error) {
-        this.changeWeb3RpcUrl();
-        i++;
-      }
-    }
   }
 
   // refetch latest 10000 pairs every hour at 0:30s
@@ -221,49 +131,6 @@ export class CronService {
       });
       console.log(`updating top processing ${batchCount} from ${i} done!`);
     }
-  }
-
-  // refetch new pairs every 5 minutes
-  @Cron('0 */5 * * * *')
-  async fetchNewPairs() {
-    console.log('fetch New pairs every 5 minute');
-    try {
-      this.removeDoubledCoinHistory();
-    } catch (err) {
-      console.log('Error removeDoubledCoinHistory');
-    }
-
-    let batchCount = 5;
-
-    const factoryContract = new this.web3.eth.Contract(
-      ABI_UNISWAP_V2_FACTORY,
-      PANCAKESWAP_V2_FACTORY,
-    );
-    let [lastPair, loggedLastPair] = await Promise.all([
-      factoryContract.methods.allPairsLength().call(),
-      this.pairModel.findOne().sort({ pairIndex: -1 }).limit(1).exec(),
-    ]);
-
-    let startPair = loggedLastPair.pairIndex + 1;
-    // lastPair = startPair + 1;
-    console.log(startPair, lastPair);
-
-    for (let i = startPair - batchCount; i < lastPair; i += batchCount) {
-      let idArr = Array.from(
-        { length: batchCount },
-        (_, offset) => i + offset,
-      ).filter((item) => item < lastPair);
-
-      // const pairInfoArr =
-      await Promise.all(
-        idArr.map((pairIndex) =>
-          this.getPairInfobyIndex(pairIndex, factoryContract),
-        ),
-      );
-      // console.log(pairInfoArr);
-    }
-
-    return lastPair;
   }
 
   //990878
