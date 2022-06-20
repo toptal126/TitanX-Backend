@@ -63,20 +63,18 @@ export class CoinPriceService {
 
   async findByBlockNumber(blockNumber): Promise<CoinPrice> {
     const coinPrices = await this.model
-      .find({ toBlock: { $gte: blockNumber } })
-      .sort({ timeStamp: 1 })
-      .limit(1)
+      .findOne({ toBlock: { $lte: blockNumber } })
       .exec();
-    return coinPrices[0];
+    return coinPrices;
   }
 
   async findByTimeStamp(timeStamp): Promise<CoinPrice> {
     const coinPrices = await this.model
-      .find({ timeStamp: { $gte: timeStamp } })
-      .sort({ timeStamp: 1 })
-      .limit(1)
+      .findOne({ timeStamp: { $gte: timeStamp } })
+      // .sort({ timeStamp: 1 })
+      // .limit(1)
       .exec();
-    return coinPrices[0];
+    return coinPrices;
   }
 
   async getBlockTimeStampByNumber(blockNumber: number) {

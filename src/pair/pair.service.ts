@@ -20,6 +20,7 @@ import {
   SwapLogsResult,
 } from './interfaces/coinPrice.interface';
 import { CoinPriceService } from './coinPrice.service';
+import { CoinPrice, CoinPriceDocument } from './schemas/coinPrice.schema';
 
 @Injectable()
 export class PairService {
@@ -28,6 +29,8 @@ export class PairService {
 
   constructor(
     @InjectModel(Pair.name) private readonly pairModel: Model<PairDocument>,
+    @InjectModel(Pair.name)
+    private readonly coinPriceModel: Model<CoinPriceDocument>,
     private readonly cronService: CronService,
     private readonly coinPriceService: CoinPriceService,
   ) {
@@ -287,7 +290,6 @@ export class PairService {
               ABI_UNISWAP_V2_PAIR,
               pairAddress,
             );
-            // console.log(toArr[index] - fromArr[index]);
             return pairContract.getPastEvents('Swap', {
               fromBlock: fromArr[index],
               toBlock: toArr[index],
@@ -316,10 +318,35 @@ export class PairService {
             transactionHash: item.transactionHash,
           };
         });
+
         result = result.concat(logs.reverse());
       }
       // return logs.reverse();
     }
+    let st = new Date().getTime() / 1000;
+    let blockTimeStampArr: number[] = await Promise.all(
+      result.map((log) =>
+        this.coinPriceService.getBlockTimeStampByNumber(log.blockNumber),
+      ),
+    );
+    console.log(new Date().getTime() / 1000 - st);
+    st = new Date().getTime() / 1000;
+
+    let coinPriceArr: CoinPrice[] = await Promise.all(
+      blockTimeStampArr.map((timeStamp) =>
+        this.coinPriceModel.findOne({ timeStamp: { $gte: timeStamp } }).exec(),
+      ),
+    );
+
+    console.log(new Date().getTime() / 1000 - st);
+    result.forEach((log, item) => {
+      log.coinPrice = coinPriceArr[item].usdPrice;
+      log.timeStamp = blockTimeStampArr[item];
+    });
+    console.log(
+      result.length,
+      coinPriceArr.length /* blockTimeStampArr.length*/,
+    );
     return {
       creationBlock: creation_block,
       fromBlock,
