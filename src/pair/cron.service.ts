@@ -150,7 +150,7 @@ export class CronService {
   async fetchLast10000() {
     console.log('every 30 minute');
 
-    let batchCount = 100;
+    let batchCount = 400;
 
     const factoryContract = new this.web3.eth.Contract(
       ABI_UNISWAP_V2_FACTORY,
@@ -187,7 +187,7 @@ export class CronService {
   async fetchTopPairs() {
     console.log('fetchTopPairs');
     let cap = 10000;
-    let batchCount = 100;
+    let batchCount = 400;
 
     const factoryContract = new this.web3.eth.Contract(
       ABI_UNISWAP_V2_FACTORY,
@@ -309,6 +309,7 @@ export class CronService {
 
   async getPairInfoByAddress(pairAddress: string) {
     let i = 0;
+    let error;
     while (i < 5) {
       try {
         const pairContract = this.getV2PairContract(pairAddress);
@@ -388,12 +389,14 @@ export class CronService {
           reserve_usd,
         };
         return updateDBItem;
-      } catch (error) {
-        console.log('error with processing pair', pairAddress);
+      } catch (_error) {
+        error = _error;
         i++;
         this.changeWeb3RpcUrl();
       }
     }
+
+    console.log('error with processing pair', pairAddress, error);
     return null;
   }
 
