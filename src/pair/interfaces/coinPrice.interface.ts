@@ -15,6 +15,18 @@ export interface CoinPriceQuery {
   quoteAddress?: string;
 }
 
+export interface CreationBlock {
+  height: number;
+  timestamp: {
+    unixtime: number;
+  };
+}
+
+export interface SwapLogsQuery {
+  toBlock?: any;
+  queryCnt?: number;
+}
+
 export interface BitQueryTradeInterval {
   timeInterval: {
     minute: string;

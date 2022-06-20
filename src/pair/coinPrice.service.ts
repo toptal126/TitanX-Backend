@@ -13,6 +13,7 @@ import {
   BitQueryTradeInterval,
   CoinPriceCandle,
   CoinPriceQuery,
+  CreationBlock,
   TokenInformation,
 } from './interfaces/coinPrice.interface';
 import {
@@ -357,7 +358,7 @@ export class CoinPriceService {
     }
   }
 
-  async getCreationBlock(contractAddress: string) {
+  async getCreationBlock(contractAddress: string): Promise<CreationBlock> {
     const creationBlock = await this.executeBitqueryAPI(
       CONTRACT_CREATION_BLOCK(contractAddress),
     );

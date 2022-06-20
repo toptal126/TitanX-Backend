@@ -1,4 +1,5 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { SwapLogsQuery } from './interfaces/coinPrice.interface';
 import { PairService } from './pair.service';
 import { Pair } from './schemas/pair.schema';
 
@@ -43,7 +44,15 @@ export class PairController {
   @Get('/logs/swap/:pairAddress')
   async getLastSwapLogs(
     @Param('pairAddress') pairAddress: string,
-  ): Promise<Pair[]> {
-    return await this.service.search(pairAddress);
+    @Query() swapLogsQuery: SwapLogsQuery,
+  ) {
+    if (!swapLogsQuery.queryCnt || swapLogsQuery.queryCnt > 100) {
+      swapLogsQuery.queryCnt = 100;
+    }
+    if (!swapLogsQuery.toBlock) {
+      swapLogsQuery.toBlock = 'latest';
+    }
+    // return swapLogsQuery;
+    return await this.service.getLastSwapLogs(pairAddress, swapLogsQuery);
   }
 }

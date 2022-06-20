@@ -13,6 +13,8 @@ import { Pair, PairDocument } from './schemas/pair.schema';
 import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
 import * as ABI_UNISWAP_V2_PAIR from 'src/helpers/abis/ABI_UNISWAP_V2_PAIR.json';
 import { CronService } from './cron.service';
+import { CreationBlock, SwapLogsQuery } from './interfaces/coinPrice.interface';
+import { CoinPriceService } from './coinPrice.service';
 
 @Injectable()
 export class PairService {
@@ -22,6 +24,7 @@ export class PairService {
   constructor(
     @InjectModel(Pair.name) private readonly model: Model<PairDocument>,
     private readonly cronService: CronService,
+    private readonly coinPriceService: CoinPriceService,
   ) {
     const Web3 = require('web3');
     this.rpcUrl = getRandRpcElseOne('');
@@ -198,5 +201,59 @@ export class PairService {
       'Internal Server Error',
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
+  }
+
+  async getLastSwapLogs(pairAddress: string, swapLogsQuery: SwapLogsQuery) {
+    if (swapLogsQuery.toBlock === 'latest') {
+      swapLogsQuery.toBlock = await this.web3.eth.getBlockNumber();
+    }
+    let toBlock: number = swapLogsQuery.toBlock;
+    let scanBlockRange: number = 100;
+    let result = [];
+    let pairContract;
+    try {
+      pairContract = new this.web3.eth.Contract(
+        ABI_UNISWAP_V2_PAIR,
+        pairAddress,
+      );
+    } catch (error) {
+      throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
+    }
+
+    const pairCreation: CreationBlock =
+      await this.coinPriceService.getCreationBlock(pairAddress);
+
+    while (
+      result.length < swapLogsQuery.queryCnt &&
+      toBlock > pairCreation.height
+    ) {
+      let logs: any[] = await pairContract.getPastEvents('Swap', {
+        toBlock: toBlock,
+        fromBlock: Math.max(toBlock - scanBlockRange, pairCreation.height),
+      });
+      toBlock = toBlock - scanBlockRange - 1;
+      if (logs.length < 10) {
+        scanBlockRange = Math.min(5000, scanBlockRange * 5);
+      }
+      if (logs.length) {
+        logs = logs.map((item) => {
+          return {
+            blockNumber: item.blockNumber,
+            returnValues: item.returnValues,
+            transactionHash: item.transactionHash,
+          };
+        });
+        result = result.concat(logs.reverse());
+      }
+      console.log(
+        pairCreation.height,
+        toBlock,
+        scanBlockRange,
+        result.length,
+        logs.length,
+      );
+      // return logs.reverse();
+    }
+    return result.length > 100 ? result.slice(-100) : result;
   }
 }
