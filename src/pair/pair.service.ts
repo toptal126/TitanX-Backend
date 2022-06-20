@@ -14,7 +14,11 @@ import { Pair, PairDocument } from './schemas/pair.schema';
 import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
 import * as ABI_UNISWAP_V2_PAIR from 'src/helpers/abis/ABI_UNISWAP_V2_PAIR.json';
 import { CronService } from './cron.service';
-import { CreationBlock, SwapLogsQuery } from './interfaces/coinPrice.interface';
+import {
+  CreationBlock,
+  SwapLogsQuery,
+  SwapLogsResult,
+} from './interfaces/coinPrice.interface';
 import { CoinPriceService } from './coinPrice.service';
 
 @Injectable()
@@ -23,7 +27,7 @@ export class PairService {
   private rpcUrl: string;
 
   constructor(
-    @InjectModel(Pair.name) private readonly model: Model<PairDocument>,
+    @InjectModel(Pair.name) private readonly pairModel: Model<PairDocument>,
     private readonly cronService: CronService,
     private readonly coinPriceService: CoinPriceService,
   ) {
@@ -44,7 +48,7 @@ export class PairService {
   };
 
   async findTop(length: number): Promise<Pair[]> {
-    return await this.model
+    return await this.pairModel
       .find({})
       .sort({ reserve_usd: -1 })
       .limit(100)
@@ -52,10 +56,10 @@ export class PairService {
   }
 
   async findOne(pairAddress: string): Promise<Pair> {
-    return await this.model.findOne({ pairAddress }).exec();
+    return await this.pairModel.findOne({ pairAddress }).exec();
   }
   async findByTokenAddress(tokenAddress: string): Promise<Pair[]> {
-    return await this.model
+    return await this.pairModel
       .find({
         $or: [
           { token0: { $regex: `${tokenAddress}`, $options: 'i' } },
@@ -68,10 +72,10 @@ export class PairService {
   }
 
   async findByIndex(pairIndex: string): Promise<Pair> {
-    return await this.model.findOne({ pairIndex }).exec();
+    return await this.pairModel.findOne({ pairIndex }).exec();
   }
   async search(query: string): Promise<Pair[]> {
-    return await this.model
+    return await this.pairModel
       .find({
         $or: [
           { pairAddress: { $regex: `${query}`, $options: 'i' } },
@@ -89,7 +93,7 @@ export class PairService {
   }
 
   async findBestPair(baseTokenAddress: string): Promise<Pair> {
-    const bestPairs = await this.model
+    const bestPairs = await this.pairModel
       .find({
         $or: [
           {
@@ -185,7 +189,7 @@ export class PairService {
         pairArray.forEach((resultItem, index) => {
           if (resultItem === null) return;
           const updateDBItem = { ...resultItem, dexId: dexIdList[index].index };
-          this.model
+          this.pairModel
             .findOneAndUpdate(
               { pairAddress: updateDBItem.pairAddress },
               updateDBItem,
@@ -209,7 +213,13 @@ export class PairService {
     );
   }
 
-  async getLastSwapLogs(pairAddress: string, swapLogsQuery: SwapLogsQuery) {
+  async getLastSwapLogs(
+    pairAddress: string,
+    swapLogsQuery: SwapLogsQuery,
+  ): Promise<SwapLogsResult> {
+    const pair: PairDocument = await this.pairModel
+      .findOne({ pairAddress })
+      .exec();
     const cap = 100000;
     if (swapLogsQuery.toBlock === 'latest') {
       swapLogsQuery.toBlock = await this.web3.eth.getBlockNumber();
@@ -231,15 +241,26 @@ export class PairService {
       throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
     }
 
-    const pairCreation: CreationBlock =
-      await this.coinPriceService.getCreationBlock(pairAddress);
+    let creation_block: number = pair.creation_block;
+    if (!pair.creation_block) {
+      const pairCreation: CreationBlock =
+        await this.coinPriceService.getCreationBlock(pairAddress);
+      creation_block = pairCreation.height;
+      const updateDBItem = {
+        ...pair.toObject(),
+        creation_block: creation_block,
+      };
+      const res = await this.pairModel
+        .findOneAndUpdate({ pairAddress }, updateDBItem)
+        .exec();
+    }
 
     while (
       result.length < swapLogsQuery.queryCnt &&
-      toBlock > pairCreation.height &&
+      toBlock > creation_block &&
       swapLogsQuery.toBlock - cap < toBlock
     ) {
-      fromBlock = Math.max(toBlock - scanBlockRange, pairCreation.height);
+      fromBlock = Math.max(toBlock - scanBlockRange, creation_block);
 
       let fromArr: number[];
       let toArr: number[];
@@ -266,6 +287,7 @@ export class PairService {
               ABI_UNISWAP_V2_PAIR,
               pairAddress,
             );
+            // console.log(toArr[index] - fromArr[index]);
             return pairContract.getPastEvents('Swap', {
               fromBlock: fromArr[index],
               toBlock: toArr[index],
@@ -299,9 +321,11 @@ export class PairService {
       // return logs.reverse();
     }
     return {
-      earliestBlockNumber: fromBlock,
-      logs: result.length > 100 ? result.slice(-100) : result,
-      isFinished: fromBlock <= pairCreation.height,
+      creationBlock: creation_block,
+      fromBlock,
+      toBlock: swapLogsQuery.toBlock,
+      isFinished: fromBlock <= creation_block,
+      logs: result,
     };
   }
 }

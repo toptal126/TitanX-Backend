@@ -27,7 +27,9 @@ export interface SwapLogsQuery {
   queryCnt?: number;
 }
 export interface SwapLogsResult {
-  earliestBlockNumber: number;
+  creationBlock: number;
+  fromBlock: number;
+  toBlock: number;
   isFinished: boolean;
   logs: any[];
 }
