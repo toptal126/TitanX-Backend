@@ -39,4 +39,11 @@ export class PairController {
   ): Promise<Pair[]> {
     return await this.service.findPairsFromDEX(baseTokenAddress);
   }
+
+  @Get('/logs/swap/:pairAddress')
+  async getLastSwapLogs(
+    @Param('pairAddress') pairAddress: string,
+  ): Promise<Pair[]> {
+    return await this.service.search(pairAddress);
+  }
 }

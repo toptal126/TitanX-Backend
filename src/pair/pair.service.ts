@@ -172,7 +172,9 @@ export class PairService {
             this.cronService.getPairInfoByAddress(pairAddress),
           ),
         );
-        const result = pairArray.map((resultItem, index) => {
+        const result = [];
+        pairArray.forEach((resultItem, index) => {
+          if (resultItem === null) return;
           const updateDBItem = { ...resultItem, dexId: dexIdList[index].index };
           this.model
             .findOneAndUpdate(
@@ -183,7 +185,7 @@ export class PairService {
               },
             )
             .exec();
-          return updateDBItem;
+          result.push(updateDBItem);
         });
 
         return result;
