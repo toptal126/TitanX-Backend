@@ -65,6 +65,27 @@ export const DEX_LIST = [
   },
 ];
 
+export const RPC_LIST = [
+  'https://bsc-dataseed1.binance.org/',
+  'https://bsc-dataseed2.binance.org/',
+  'https://bsc-dataseed3.binance.org/',
+  'https://bsc-dataseed4.binance.org/',
+  'https://bsc-dataseed1.defibit.io/',
+  'https://bsc-dataseed2.defibit.io/',
+  'https://bsc-dataseed3.defibit.io/',
+  'https://bsc-dataseed4.defibit.io/',
+  'https://bsc-dataseed1.ninicoin.io/',
+  'https://bsc-dataseed2.ninicoin.io/',
+  'https://bsc-dataseed3.ninicoin.io/',
+  'https://bsc-dataseed4.ninicoin.io/',
+];
+
+export const getRandRpcElseOne = (rpc) => {
+  const array = RPC_LIST.filter((item) => item != rpc);
+  return array[Math.floor(Math.random() * array.length)];
+};
+
+/*
 const RPC_LIST = [
   'https://bsc.mytokenpocket.vip',
   'https://bsc-dataseed3.binance.org',
@@ -74,7 +95,7 @@ const RPC_LIST = [
   'https://bsc-dataseed4.binance.org',
   'https://bsc-dataseed2.defibit.io',
   'https://bsc-dataseed.binance.org',
-  'https://rpc.ankr.com/bsc',
+  // 'https://rpc.ankr.com/bsc',
   'https://bsc-dataseed3.ninicoin.io',
   'https://bsc-dataseed2.ninicoin.io',
   'https://bsc-dataseed3.defibit.io',
@@ -86,7 +107,4 @@ const RPC_LIST = [
   'https://bsc-dataseed4.ninicoin.io',
 ];
 
-export const getRandRpcElseOne = (rpc) => {
-  const array = RPC_LIST.filter((item) => item != rpc);
-  return array[Math.floor(Math.random() * array.length)];
-};
+*/

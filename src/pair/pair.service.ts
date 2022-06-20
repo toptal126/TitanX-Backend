@@ -6,6 +6,7 @@ import {
   BUSD_ADDRESS,
   DEX_LIST,
   getRandRpcElseOne,
+  RPC_LIST,
   WBNB_ADDRESS,
 } from 'src/helpers/constants';
 import { Pair, PairDocument } from './schemas/pair.schema';
@@ -31,9 +32,14 @@ export class PairService {
     this.web3 = new Web3(this.rpcUrl);
   }
 
-  changeWeb3RpcUrl = () => {
-    this.rpcUrl = getRandRpcElseOne(this.rpcUrl);
+  changeWeb3RpcUrl = (rpcUrl = null) => {
     const Web3 = require('web3');
+    if (rpcUrl) {
+      this.rpcUrl = rpcUrl;
+      this.web3 = new Web3(this.rpcUrl);
+      return;
+    }
+    this.rpcUrl = getRandRpcElseOne(this.rpcUrl);
     this.web3 = new Web3(this.rpcUrl);
   };
 
@@ -210,9 +216,12 @@ export class PairService {
     }
     let toBlock: number = swapLogsQuery.toBlock;
     let fromBlock: number;
-    let scanBlockRange: number = 100;
+    let scanBlockRange: number = 200;
+    const MAX_BLOCK_REQUEST: number = 4000;
     let result = [];
     let pairContract;
+
+    let rpcStart = 0;
     try {
       pairContract = new this.web3.eth.Contract(
         ABI_UNISWAP_V2_PAIR,
@@ -231,21 +240,51 @@ export class PairService {
       swapLogsQuery.toBlock - cap < toBlock
     ) {
       fromBlock = Math.max(toBlock - scanBlockRange, pairCreation.height);
-      const blockQueryRange = {
-        toBlock,
-        fromBlock,
-      };
-      // if (scanBlockRange >= 5000) {
-      //   // delete blockQueryRange.toBlock;
-      //   blockQueryRange.fromBlock = toBlock - 5000;
-      // }
-      let logs: any[] = await pairContract.getPastEvents(
-        'Swap',
-        blockQueryRange,
-      );
+
+      let fromArr: number[];
+      let toArr: number[];
+      fromArr = [];
+      toArr = [];
+      let curFrom = toBlock,
+        curTo = toBlock;
+      do {
+        toArr.push(curTo);
+        curFrom -= Math.min(MAX_BLOCK_REQUEST, scanBlockRange);
+        fromArr.push(curFrom >= fromBlock ? curFrom : fromBlock);
+        curTo = curFrom - 1;
+      } while (curFrom > fromBlock);
+      let logs: any[];
+      try {
+        logs = await Promise.all(
+          fromArr.map((item, index) => {
+            this.changeWeb3RpcUrl(
+              RPC_LIST[(index % RPC_LIST.length) + rpcStart],
+            );
+            rpcStart = RPC_LIST.length / 2 - rpcStart;
+
+            pairContract = new this.web3.eth.Contract(
+              ABI_UNISWAP_V2_PAIR,
+              pairAddress,
+            );
+            return pairContract.getPastEvents('Swap', {
+              fromBlock: fromArr[index],
+              toBlock: toArr[index],
+            });
+          }),
+        );
+      } catch (error) {
+        console.log(this.rpcUrl, error);
+      }
+      logs = [].concat.apply([], logs);
+
       toBlock = toBlock - scanBlockRange - 1;
-      if (logs.length < 10) {
-        scanBlockRange = Math.min(5000, scanBlockRange * 5);
+      if (logs.length < 20) {
+        scanBlockRange = Math.min(
+          (RPC_LIST.length * MAX_BLOCK_REQUEST) / 2,
+          scanBlockRange * 5,
+        );
+      } else if (logs.length >= 500) {
+        scanBlockRange = scanBlockRange / 5;
       }
       if (logs.length) {
         logs = logs.map((item) => {
@@ -257,13 +296,6 @@ export class PairService {
         });
         result = result.concat(logs.reverse());
       }
-      console.log(
-        pairCreation.height,
-        toBlock,
-        scanBlockRange,
-        result.length,
-        logs.length,
-      );
       // return logs.reverse();
     }
     return {
