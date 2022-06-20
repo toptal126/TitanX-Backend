@@ -130,58 +130,71 @@ export class PairService {
     } catch (error) {
       throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
     }
-    let factoryContracts = [];
-
-    DEX_LIST.forEach((item) => {
-      factoryContracts.push(
-        new this.web3.eth.Contract(
-          ABI_UNISWAP_V2_FACTORY,
-          item.factory_address,
-        ),
-      );
-    });
-    let pairAddresses = await Promise.all(
-      [].concat.apply(
-        [],
-        factoryContracts.map((factoryContract) =>
-          BIG_TOKEN_ADDRESSES.map((token) =>
-            factoryContract.methods
-              .getPair(baseTokenAddress, token.address)
-              .call(),
+    let i = 0;
+    while (i < 5) {
+      try {
+        let factoryContracts = [];
+        DEX_LIST.forEach((item) => {
+          factoryContracts.push(
+            new this.web3.eth.Contract(
+              ABI_UNISWAP_V2_FACTORY,
+              item.factory_address,
+            ),
+          );
+        });
+        let pairAddresses = await Promise.all(
+          [].concat.apply(
+            [],
+            factoryContracts.map((factoryContract) =>
+              BIG_TOKEN_ADDRESSES.map((token) =>
+                factoryContract.methods
+                  .getPair(baseTokenAddress, token.address)
+                  .call(),
+              ),
+            ),
           ),
-        ),
-      ),
-    );
-    let dexIdList = [].concat.apply(
-      [],
-      DEX_LIST.map((DEX, index) =>
-        BIG_TOKEN_ADDRESSES.map((token) => {
-          return { index, token };
-        }),
-      ),
-    );
-    dexIdList = dexIdList.filter((item, index) => pairAddresses[index] != 0);
-    pairAddresses = pairAddresses.filter((item) => item != 0);
+        );
+        let dexIdList = [].concat.apply(
+          [],
+          DEX_LIST.map((DEX, index) =>
+            BIG_TOKEN_ADDRESSES.map((token) => {
+              return { index, token };
+            }),
+          ),
+        );
+        dexIdList = dexIdList.filter(
+          (item, index) => pairAddresses[index] != 0,
+        );
+        pairAddresses = pairAddresses.filter((item) => item != 0);
 
-    let pairArray = await Promise.all(
-      pairAddresses.map((pairAddress) =>
-        this.cronService.getPairInfoByAddress(pairAddress),
-      ),
-    );
-    const result = pairArray.map((resultItem, index) => {
-      const updateDBItem = { ...resultItem, dexId: dexIdList[index].index };
-      this.model
-        .findOneAndUpdate(
-          { pairAddress: updateDBItem.pairAddress },
-          updateDBItem,
-          {
-            upsert: true,
-          },
-        )
-        .exec();
-      return updateDBItem;
-    });
+        let pairArray = await Promise.all(
+          pairAddresses.map((pairAddress) =>
+            this.cronService.getPairInfoByAddress(pairAddress),
+          ),
+        );
+        const result = pairArray.map((resultItem, index) => {
+          const updateDBItem = { ...resultItem, dexId: dexIdList[index].index };
+          this.model
+            .findOneAndUpdate(
+              { pairAddress: updateDBItem.pairAddress },
+              updateDBItem,
+              {
+                upsert: true,
+              },
+            )
+            .exec();
+          return updateDBItem;
+        });
 
-    return result;
+        return result;
+      } catch (error) {
+        i++;
+        this.changeWeb3RpcUrl();
+      }
+    }
+    throw new HttpException(
+      'Internal Server Error',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
   }
 }

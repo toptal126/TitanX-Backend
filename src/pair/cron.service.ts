@@ -138,7 +138,6 @@ export class CronService {
         });
         return;
       } catch (error) {
-        this.logger.error(error);
         this.changeWeb3RpcUrl();
         i++;
       }
@@ -272,16 +271,15 @@ export class CronService {
         );
         return response.data;
       } catch (error) {
-        console.log(
-          address,
-          `panackeswap api error with pair :try again ${i} times`,
-        );
         i++;
       }
+
+    console.log(address, `panackeswap api error with pair `);
   }
 
   async getPairInfobyIndex(pairIndex, pcsV2Contract) {
     let i = 0;
+    let error;
     while (i < 5) {
       try {
         const pairAddress = await pcsV2Contract.methods
@@ -299,12 +297,13 @@ export class CronService {
           return updateDBItem;
         }
         return null;
-      } catch (error) {
-        console.log('error', pairIndex);
+      } catch (_error) {
+        error = _error;
         i++;
         this.changeWeb3RpcUrl();
       }
     }
+    console.log('error getPairInfobyIndex', pairIndex, error);
   }
 
   async getPairInfoByAddress(pairAddress: string) {
@@ -396,7 +395,7 @@ export class CronService {
       }
     }
 
-    console.log('error with processing pair', pairAddress, error);
+    console.log('error getting information:', pairAddress, error);
     return null;
   }
 
