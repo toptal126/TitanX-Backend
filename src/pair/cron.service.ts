@@ -119,7 +119,7 @@ export class CronService {
       );
       resultArray.forEach((resultItem) => {
         if (resultItem === null) return;
-        this.model
+        this.pairModel
           .findOneAndUpdate(
             { pairAddress: resultItem.pairAddress },
             resultItem,
