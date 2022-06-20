@@ -1,5 +1,8 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { SwapLogsQuery } from './interfaces/coinPrice.interface';
+import {
+  SwapLogsQuery,
+  SwapLogsResult,
+} from './interfaces/coinPrice.interface';
 import { PairService } from './pair.service';
 import { Pair } from './schemas/pair.schema';
 
@@ -45,7 +48,7 @@ export class PairController {
   async getLastSwapLogs(
     @Param('pairAddress') pairAddress: string,
     @Query() swapLogsQuery: SwapLogsQuery,
-  ) {
+  ): Promise<SwapLogsResult> {
     if (!swapLogsQuery.queryCnt || swapLogsQuery.queryCnt > 100) {
       swapLogsQuery.queryCnt = 100;
     }
