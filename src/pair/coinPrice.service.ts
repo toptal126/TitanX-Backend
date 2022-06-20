@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import {
   BUSD_ADDRESS,
   DEAD_ADDRESS,
+  getRandRpcElseOne,
   WBNB_ADDRESS,
 } from 'src/helpers/constants';
 import * as ABI_ERC20 from 'src/helpers/abis/ABI_ERC20.json';
@@ -29,14 +30,22 @@ const CURRENT_API_KEY_ARRAY = process.env.BITQUERY_API_KEY_ARRAY.split(' ');
 @Injectable()
 export class CoinPriceService {
   private web3;
+  private rpcUrl: string;
 
   constructor(
     @InjectModel(CoinPrice.name)
     private readonly model: Model<CoinPriceDocument>,
   ) {
     const Web3 = require('web3');
-    this.web3 = new Web3('https://bsc-dataseed.binance.org/');
+    this.rpcUrl = getRandRpcElseOne('');
+    this.web3 = new Web3(this.rpcUrl);
   }
+
+  changeWeb3RpcUrl = () => {
+    this.rpcUrl = getRandRpcElseOne(this.rpcUrl);
+    const Web3 = require('web3');
+    this.web3 = new Web3(this.rpcUrl);
+  };
 
   private getERC20Contract(tokenAddress: string) {
     return new this.web3.eth.Contract(ABI_ERC20, tokenAddress);
@@ -292,9 +301,9 @@ export class CoinPriceService {
     const st = new Date().getTime();
 
     const tokenContract = this.getERC20Contract(tokenAddress);
-    const [{ data: PCS_API_RESULT }, minted, decimals, dead_amount] =
+    const [/*{ data: PCS_API_RESULT }*/ minted, decimals, dead_amount] =
       await Promise.all([
-        axios.get(`https://api.pancakeswap.info/api/v2/tokens/${tokenAddress}`),
+        // axios.get(`https://api.pancakeswap.info/api/v2/tokens/${tokenAddress}`),
         tokenContract.methods.totalSupply().call(),
         tokenContract.methods.decimals().call(),
         tokenContract.methods.balanceOf(DEAD_ADDRESS).call(),
@@ -316,9 +325,9 @@ export class CoinPriceService {
     }
     let result: TokenInformation = {
       id: tokenAddress,
-      price: parseFloat(PCS_API_RESULT.data?.price),
-      symbol: PCS_API_RESULT.data?.symbol,
-      name: PCS_API_RESULT.data?.name,
+      // price: parseFloat(PCS_API_RESULT.data?.price),
+      // symbol: PCS_API_RESULT.data?.symbol,
+      // name: PCS_API_RESULT.data?.name,
       minted: parseInt(minted) / 10 ** decimals,
       burned: parseInt(dead_amount) / 10 ** decimals,
       decimals: parseInt(decimals),

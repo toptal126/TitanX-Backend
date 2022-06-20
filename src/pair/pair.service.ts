@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   BIG_TOKEN_ADDRESSES,
   BUSD_ADDRESS,
   DEX_LIST,
+  getRandRpcElseOne,
   WBNB_ADDRESS,
 } from 'src/helpers/constants';
 import { Pair, PairDocument } from './schemas/pair.schema';
@@ -16,14 +17,22 @@ import { CronService } from './cron.service';
 @Injectable()
 export class PairService {
   private web3;
+  private rpcUrl: string;
 
   constructor(
     @InjectModel(Pair.name) private readonly model: Model<PairDocument>,
     private readonly cronService: CronService,
   ) {
     const Web3 = require('web3');
-    this.web3 = new Web3('https://bsc-dataseed.binance.org/');
+    this.rpcUrl = getRandRpcElseOne('');
+    this.web3 = new Web3(this.rpcUrl);
   }
+
+  changeWeb3RpcUrl = () => {
+    this.rpcUrl = getRandRpcElseOne(this.rpcUrl);
+    const Web3 = require('web3');
+    this.web3 = new Web3(this.rpcUrl);
+  };
 
   async findTop(length: number): Promise<Pair[]> {
     return await this.model
@@ -116,6 +125,11 @@ export class PairService {
   }
 
   async findPairsFromDEX(baseTokenAddress: string): Promise<Pair[]> {
+    try {
+      this.web3.utils.toChecksumAddress(baseTokenAddress);
+    } catch (error) {
+      throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
+    }
     let factoryContracts = [];
 
     DEX_LIST.forEach((item) => {

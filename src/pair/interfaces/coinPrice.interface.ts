@@ -28,9 +28,9 @@ export interface BitQueryTradeInterval {
 
 export interface TokenInformation {
   id: string;
-  symbol: string;
-  name: string;
-  price: number;
+  symbol?: string;
+  name?: string;
+  price?: number;
   minted: number;
   burned: number;
   decimals: number;
