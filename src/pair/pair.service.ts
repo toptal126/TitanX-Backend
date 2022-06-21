@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { MongoClient } from 'mongodb';
 import {
   BIG_TOKEN_ADDRESSES,
   BUSD_ADDRESS,
@@ -10,7 +11,7 @@ import {
   WBNB_ADDRESS,
 } from 'src/helpers/constants';
 import { Pair, PairDocument } from './schemas/pair.schema';
-
+import { Document } from 'bson';
 import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
 import * as ABI_UNISWAP_V2_PAIR from 'src/helpers/abis/ABI_UNISWAP_V2_PAIR.json';
 import { CronService } from './cron.service';
@@ -22,21 +23,31 @@ import {
 import { CoinPriceService } from './coinPrice.service';
 import { CoinPrice, CoinPriceDocument } from './schemas/coinPrice.schema';
 
+require('dotenv').config();
+const MONGODB_URI = process.env.MONGODB_URI;
+
 @Injectable()
 export class PairService {
   private web3;
   private rpcUrl: string;
+  private coinPriceCollection: Document;
 
   constructor(
     @InjectModel(Pair.name) private readonly pairModel: Model<PairDocument>,
     @InjectModel(Pair.name)
-    private readonly coinPriceModel: Model<CoinPriceDocument>,
+    private readonly coinPriceModel: Model<CoinPrice>,
     private readonly cronService: CronService,
     private readonly coinPriceService: CoinPriceService,
   ) {
     const Web3 = require('web3');
     this.rpcUrl = getRandRpcElseOne('');
     this.web3 = new Web3(this.rpcUrl);
+
+    MongoClient.connect(`${MONGODB_URI}`).then((client: MongoClient) => {
+      this.coinPriceCollection = client
+        .db('native_coin_history')
+        .collection('bsc');
+    });
   }
 
   changeWeb3RpcUrl = (rpcUrl = null) => {
@@ -324,29 +335,28 @@ export class PairService {
       // return logs.reverse();
     }
     let st = new Date().getTime() / 1000;
-    let blockTimeStampArr: number[] = await Promise.all(
+    let timeStampArr: number[] = await Promise.all(
       result.map((log) =>
         this.coinPriceService.getBlockTimeStampByNumber(log.blockNumber),
       ),
     );
-    console.log(new Date().getTime() / 1000 - st);
-    st = new Date().getTime() / 1000;
 
-    let coinPriceArr: CoinPrice[] = await Promise.all(
-      blockTimeStampArr.map((timeStamp) =>
-        this.coinPriceModel.findOne({ timeStamp: { $gte: timeStamp } }).exec(),
-      ),
-    );
-
-    console.log(new Date().getTime() / 1000 - st);
-    result.forEach((log, item) => {
-      log.coinPrice = coinPriceArr[item].usdPrice;
-      log.timeStamp = blockTimeStampArr[item];
+    let blockTimeStampArr: number[] = timeStampArr.map((_timeStamp) => {
+      const timeStamp = _timeStamp - (_timeStamp % 60);
+      return timeStamp;
     });
-    console.log(
-      result.length,
-      coinPriceArr.length /* blockTimeStampArr.length*/,
-    );
+
+    let coinPriceArr: CoinPrice[] = await this.coinPriceCollection
+      .find({
+        timeStamp: { $in: blockTimeStampArr },
+      })
+      .toArray();
+    result.forEach((log, index) => {
+      log.timeStamp = timeStampArr[index];
+      log.coinPrice = coinPriceArr.find(
+        (item) => item.timeStamp == blockTimeStampArr[index],
+      )?.usdPrice;
+    });
     return {
       creationBlock: creation_block,
       fromBlock,
