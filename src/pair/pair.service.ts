@@ -34,7 +34,7 @@ export class PairService {
 
   constructor(
     @InjectModel(Pair.name) private readonly pairModel: Model<PairDocument>,
-    @InjectModel(Pair.name)
+    @InjectModel(CoinPrice.name)
     private readonly coinPriceModel: Model<CoinPrice>,
     private readonly cronService: CronService,
     private readonly coinPriceService: CoinPriceService,
@@ -347,11 +347,12 @@ export class PairService {
       return timeStamp;
     });
 
-    let coinPriceArr: CoinPrice[] = await this.pairCollection
+    let coinPriceArr: CoinPrice[] = await this.coinPriceModel
       .find({
         timeStamp: { $in: blockTimeStampArr },
       })
-      .toArray();
+      .exec();
+    // console.log(coinPriceArr, 'coinPriceArr');
     result.forEach((log, index) => {
       log.timeStamp = timeStampArr[index];
       log.coinPrice = coinPriceArr.find(
