@@ -128,6 +128,7 @@ export class PairService {
           },
         ],
       })
+      .limit(100)
       .exec();
     let result: Pair = bestPairs[0];
     bestPairs.forEach((item) => {
