@@ -30,7 +30,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 export class PairService {
   private web3;
   private rpcUrl: string;
-  private coinPriceCollection: Document;
+  private pairCollection: Document;
 
   constructor(
     @InjectModel(Pair.name) private readonly pairModel: Model<PairDocument>,
@@ -44,9 +44,7 @@ export class PairService {
     this.web3 = new Web3(this.rpcUrl);
 
     MongoClient.connect(`${MONGODB_URI}`).then((client: MongoClient) => {
-      this.coinPriceCollection = client
-        .db('native_coin_history')
-        .collection('bsc');
+      this.pairCollection = client.db('uniswap_v2_pairs').collection('bsc');
     });
   }
 
@@ -107,7 +105,8 @@ export class PairService {
   }
 
   async findBestPair(baseTokenAddress: string): Promise<Pair> {
-    const bestPairs = await this.pairModel
+    // console.log('108');
+    const bestPairs = await this.pairCollection
       .find({
         $or: [
           {
@@ -128,9 +127,10 @@ export class PairService {
           },
         ],
       })
-      .limit(100)
-      .exec();
+      .limit(20)
+      .toArray();
     let result: Pair = bestPairs[0];
+    // console.log(bestPairs);
     bestPairs.forEach((item) => {
       if (item.token0 == WBNB_ADDRESS || item.token1 == WBNB_ADDRESS)
         result = item;
@@ -347,7 +347,7 @@ export class PairService {
       return timeStamp;
     });
 
-    let coinPriceArr: CoinPrice[] = await this.coinPriceCollection
+    let coinPriceArr: CoinPrice[] = await this.pairCollection
       .find({
         timeStamp: { $in: blockTimeStampArr },
       })
