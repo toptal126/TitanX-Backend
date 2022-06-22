@@ -26,6 +26,13 @@ export interface SwapLogsQuery {
   toBlock?: any;
   queryCnt?: number;
 }
+export interface SwapLogsResult {
+  creationBlock: number;
+  fromBlock: number;
+  toBlock: number;
+  isFinished: boolean;
+  logs: any[];
+}
 
 export interface BitQueryTradeInterval {
   timeInterval: {

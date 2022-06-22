@@ -1,44 +1,66 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { MongoClient } from 'mongodb';
 import {
   BIG_TOKEN_ADDRESSES,
   BUSD_ADDRESS,
   DEX_LIST,
   getRandRpcElseOne,
+  RPC_LIST,
   WBNB_ADDRESS,
 } from 'src/helpers/constants';
 import { Pair, PairDocument } from './schemas/pair.schema';
-
+import { Document } from 'bson';
 import * as ABI_UNISWAP_V2_FACTORY from 'src/helpers/abis/ABI_UNISWAP_V2_FACTORY.json';
 import * as ABI_UNISWAP_V2_PAIR from 'src/helpers/abis/ABI_UNISWAP_V2_PAIR.json';
 import { CronService } from './cron.service';
-import { CreationBlock, SwapLogsQuery } from './interfaces/coinPrice.interface';
+import {
+  CreationBlock,
+  SwapLogsQuery,
+  SwapLogsResult,
+} from './interfaces/coinPrice.interface';
 import { CoinPriceService } from './coinPrice.service';
+import { CoinPrice, CoinPriceDocument } from './schemas/coinPrice.schema';
+
+require('dotenv').config();
+const MONGODB_URI = process.env.MONGODB_URI;
 
 @Injectable()
 export class PairService {
   private web3;
   private rpcUrl: string;
+  private pairCollection: Document;
 
   constructor(
-    @InjectModel(Pair.name) private readonly model: Model<PairDocument>,
+    @InjectModel(Pair.name) private readonly pairModel: Model<PairDocument>,
+    @InjectModel(CoinPrice.name)
+    private readonly coinPriceModel: Model<CoinPrice>,
     private readonly cronService: CronService,
     private readonly coinPriceService: CoinPriceService,
   ) {
     const Web3 = require('web3');
     this.rpcUrl = getRandRpcElseOne('');
     this.web3 = new Web3(this.rpcUrl);
+
+    MongoClient.connect(`${MONGODB_URI}`).then((client: MongoClient) => {
+      this.pairCollection = client.db('uniswap_v2_pairs').collection('bsc');
+    });
   }
 
-  changeWeb3RpcUrl = () => {
-    this.rpcUrl = getRandRpcElseOne(this.rpcUrl);
+  changeWeb3RpcUrl = (rpcUrl = null) => {
     const Web3 = require('web3');
+    if (rpcUrl) {
+      this.rpcUrl = rpcUrl;
+      this.web3 = new Web3(this.rpcUrl);
+      return;
+    }
+    this.rpcUrl = getRandRpcElseOne(this.rpcUrl);
     this.web3 = new Web3(this.rpcUrl);
   };
 
   async findTop(length: number): Promise<Pair[]> {
-    return await this.model
+    return await this.pairModel
       .find({})
       .sort({ reserve_usd: -1 })
       .limit(100)
@@ -46,10 +68,10 @@ export class PairService {
   }
 
   async findOne(pairAddress: string): Promise<Pair> {
-    return await this.model.findOne({ pairAddress }).exec();
+    return await this.pairModel.findOne({ pairAddress }).exec();
   }
   async findByTokenAddress(tokenAddress: string): Promise<Pair[]> {
-    return await this.model
+    return await this.pairModel
       .find({
         $or: [
           { token0: { $regex: `${tokenAddress}`, $options: 'i' } },
@@ -62,10 +84,10 @@ export class PairService {
   }
 
   async findByIndex(pairIndex: string): Promise<Pair> {
-    return await this.model.findOne({ pairIndex }).exec();
+    return await this.pairModel.findOne({ pairIndex }).exec();
   }
   async search(query: string): Promise<Pair[]> {
-    return await this.model
+    return await this.pairModel
       .find({
         $or: [
           { pairAddress: { $regex: `${query}`, $options: 'i' } },
@@ -83,7 +105,8 @@ export class PairService {
   }
 
   async findBestPair(baseTokenAddress: string): Promise<Pair> {
-    const bestPairs = await this.model
+    // console.log('108');
+    const bestPairs = await this.pairCollection
       .find({
         $or: [
           {
@@ -104,12 +127,16 @@ export class PairService {
           },
         ],
       })
-      .exec();
-    let result: Pair = bestPairs[0];
-    bestPairs.forEach((item) => {
-      if (item.token0 == WBNB_ADDRESS || item.token1 == WBNB_ADDRESS)
-        result = item;
-    });
+      .sort({ reserved_usd: -1 })
+      .limit(20)
+      .toArray();
+    if (bestPairs.length === 0) return null;
+    let result: Pair = bestPairs.at(-1);
+    // console.log(bestPairs);
+    // bestPairs.forEach((item) => {
+    //   if (item.token0 == WBNB_ADDRESS || item.token1 == WBNB_ADDRESS)
+    //     result = item;
+    // });
     return result;
   }
 
@@ -179,7 +206,7 @@ export class PairService {
         pairArray.forEach((resultItem, index) => {
           if (resultItem === null) return;
           const updateDBItem = { ...resultItem, dexId: dexIdList[index].index };
-          this.model
+          this.pairModel
             .findOneAndUpdate(
               { pairAddress: updateDBItem.pairAddress },
               updateDBItem,
@@ -203,15 +230,25 @@ export class PairService {
     );
   }
 
-  async getLastSwapLogs(pairAddress: string, swapLogsQuery: SwapLogsQuery) {
+  async getLastSwapLogs(
+    pairAddress: string,
+    swapLogsQuery: SwapLogsQuery,
+  ): Promise<SwapLogsResult> {
+    const pair: PairDocument = await this.pairModel
+      .findOne({ pairAddress })
+      .exec();
+    const cap = 100000;
     if (swapLogsQuery.toBlock === 'latest') {
       swapLogsQuery.toBlock = await this.web3.eth.getBlockNumber();
     }
     let toBlock: number = swapLogsQuery.toBlock;
     let fromBlock: number;
-    let scanBlockRange: number = 100;
+    let scanBlockRange: number = 200;
+    const MAX_BLOCK_REQUEST: number = 4000;
     let result = [];
     let pairContract;
+
+    let rpcStart = 0;
     try {
       pairContract = new this.web3.eth.Contract(
         ABI_UNISWAP_V2_PAIR,
@@ -221,29 +258,71 @@ export class PairService {
       throw new HttpException('Invalid Token Address', HttpStatus.BAD_REQUEST);
     }
 
-    const pairCreation: CreationBlock =
-      await this.coinPriceService.getCreationBlock(pairAddress);
+    let creation_block: number = pair.creation_block;
+    if (!pair.creation_block) {
+      const pairCreation: CreationBlock =
+        await this.coinPriceService.getCreationBlock(pairAddress);
+      creation_block = pairCreation.height;
+      const updateDBItem = {
+        ...pair.toObject(),
+        creation_block: creation_block,
+      };
+      const res = await this.pairModel
+        .findOneAndUpdate({ pairAddress }, updateDBItem)
+        .exec();
+    }
 
     while (
       result.length < swapLogsQuery.queryCnt &&
-      toBlock > pairCreation.height
+      toBlock > creation_block &&
+      swapLogsQuery.toBlock - cap < toBlock
     ) {
-      fromBlock = Math.max(toBlock - scanBlockRange, pairCreation.height);
-      const blockQueryRange = {
-        toBlock,
-        fromBlock,
-      };
-      if (scanBlockRange >= 5000) {
-        delete blockQueryRange.toBlock;
+      fromBlock = Math.max(toBlock - scanBlockRange, creation_block);
+
+      let fromArr: number[];
+      let toArr: number[];
+      fromArr = [];
+      toArr = [];
+      let curFrom = toBlock,
+        curTo = toBlock;
+      do {
+        toArr.push(curTo);
+        curFrom -= Math.min(MAX_BLOCK_REQUEST, scanBlockRange);
+        fromArr.push(curFrom >= fromBlock ? curFrom : fromBlock);
+        curTo = curFrom - 1;
+      } while (curFrom > fromBlock);
+      let logs: any[];
+      try {
+        logs = await Promise.all(
+          fromArr.map((item, index) => {
+            this.changeWeb3RpcUrl(
+              RPC_LIST[(index % RPC_LIST.length) + rpcStart],
+            );
+            rpcStart = RPC_LIST.length / 2 - rpcStart;
+
+            pairContract = new this.web3.eth.Contract(
+              ABI_UNISWAP_V2_PAIR,
+              pairAddress,
+            );
+            return pairContract.getPastEvents('Swap', {
+              fromBlock: fromArr[index],
+              toBlock: toArr[index],
+            });
+          }),
+        );
+      } catch (error) {
+        console.log(this.rpcUrl, error);
       }
-      console.log(blockQueryRange);
-      let logs: any[] = await pairContract.getPastEvents(
-        'Swap',
-        blockQueryRange,
-      );
+      logs = [].concat.apply([], logs);
+
       toBlock = toBlock - scanBlockRange - 1;
-      if (logs.length < 10) {
-        scanBlockRange = scanBlockRange * 5;
+      if (logs.length < 20) {
+        scanBlockRange = Math.min(
+          (RPC_LIST.length * MAX_BLOCK_REQUEST) / 2,
+          scanBlockRange * 5,
+        );
+      } else if (logs.length >= 500) {
+        scanBlockRange = scanBlockRange / 5;
       }
       if (logs.length) {
         logs = logs.map((item) => {
@@ -253,20 +332,41 @@ export class PairService {
             transactionHash: item.transactionHash,
           };
         });
+
         result = result.concat(logs.reverse());
       }
-      console.log(
-        pairCreation.height,
-        toBlock,
-        scanBlockRange,
-        result.length,
-        logs.length,
-      );
       // return logs.reverse();
     }
+    let st = new Date().getTime() / 1000;
+    let timeStampArr: number[] = await Promise.all(
+      result.map((log) =>
+        this.coinPriceService.getBlockTimeStampByNumber(log.blockNumber),
+      ),
+    );
+
+    let blockTimeStampArr: number[] = timeStampArr.map((_timeStamp) => {
+      const timeStamp = _timeStamp - (_timeStamp % 60);
+      return timeStamp;
+    });
+
+    let coinPriceArr: CoinPrice[] = await this.coinPriceModel
+      .find({
+        timeStamp: { $in: blockTimeStampArr },
+      })
+      .exec();
+    // console.log(coinPriceArr, 'coinPriceArr');
+    result.forEach((log, index) => {
+      log.timeStamp = timeStampArr[index];
+      log.coinPrice = coinPriceArr.find(
+        (item) => item.timeStamp == blockTimeStampArr[index],
+      )?.usdPrice;
+    });
     return {
-      earliestBlockNumber: fromBlock,
-      logs: result.length > 100 ? result.slice(-100) : result,
+      creationBlock: creation_block,
+      fromBlock,
+      toBlock: swapLogsQuery.toBlock,
+      isFinished: fromBlock <= creation_block,
+      logs: result,
     };
   }
 }

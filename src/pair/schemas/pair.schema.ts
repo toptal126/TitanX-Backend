@@ -55,6 +55,9 @@ export class Pair {
 
   @Prop({ required: true, default: new Date().getTime() })
   createdAt?: Date;
+
+  @Prop()
+  creation_block?: number;
 }
 
 export const PairSchema = SchemaFactory.createForClass(Pair);

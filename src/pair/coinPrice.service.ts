@@ -1,6 +1,8 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+
+import { MongoClient } from 'mongodb';
 import {
   BUSD_ADDRESS,
   DEAD_ADDRESS,
@@ -53,6 +55,7 @@ export class CoinPriceService {
   }
 
   async findLatest(): Promise<CoinPrice> {
+    console.log(await this.model.findOne().exec());
     const latest = await this.model
       .find()
       .sort({ timeStamp: -1 })
@@ -63,20 +66,18 @@ export class CoinPriceService {
 
   async findByBlockNumber(blockNumber): Promise<CoinPrice> {
     const coinPrices = await this.model
-      .find({ toBlock: { $gte: blockNumber } })
-      .sort({ timeStamp: 1 })
-      .limit(1)
+      .findOne({ toBlock: { $lte: blockNumber } })
       .exec();
-    return coinPrices[0];
+    return coinPrices;
   }
 
   async findByTimeStamp(timeStamp): Promise<CoinPrice> {
     const coinPrices = await this.model
-      .find({ timeStamp: { $gte: timeStamp } })
-      .sort({ timeStamp: 1 })
-      .limit(1)
+      .findOne({ timeStamp: { $gte: timeStamp } })
+      // .sort({ timeStamp: 1 })
+      // .limit(1)
       .exec();
-    return coinPrices[0];
+    return coinPrices;
   }
 
   async getBlockTimeStampByNumber(blockNumber: number) {

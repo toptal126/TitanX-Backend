@@ -14,7 +14,7 @@ export class CoinPrice {
       this.updatedAt = t.updatedAt;
     }
   }
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   timeStamp: number;
 
   @Prop({ required: true })
