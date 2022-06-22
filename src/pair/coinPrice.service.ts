@@ -55,7 +55,6 @@ export class CoinPriceService {
   }
 
   async findLatest(): Promise<CoinPrice> {
-    console.log(await this.model.findOne().exec());
     const latest = await this.model
       .find()
       .sort({ timeStamp: -1 })
@@ -106,21 +105,17 @@ export class CoinPriceService {
       candleQuery.baseAddress = candleQuery.quoteAddress;
       candleQuery.quoteAddress = temp;
     }
-    console.log(candleQuery);
-    if (isBNBPaired)
-      [{ result: nativeCoinPriceArry, desiredLength }, bitqueryArr] =
-        await Promise.all([
-          this.getNativeCoinPriceByInterval(
-            candleQuery.from,
-            candleQuery.to,
-            candleQuery.interval,
-          ),
-          this.executeBitqueryAPI(DEX_TRADE_PER_INTERVAL(candleQuery)),
-        ]);
-    else
-      bitqueryArr = await this.executeBitqueryAPI(
-        DEX_TRADE_PER_INTERVAL(candleQuery),
-      );
+    // console.log(candleQuery);
+
+    [{ result: nativeCoinPriceArry, desiredLength }, bitqueryArr] =
+      await Promise.all([
+        this.getNativeCoinPriceByInterval(
+          candleQuery.from,
+          candleQuery.to,
+          candleQuery.interval,
+        ),
+        this.executeBitqueryAPI(DEX_TRADE_PER_INTERVAL(candleQuery)),
+      ]);
 
     // console.log(
     //   candleQuery,
@@ -196,8 +191,9 @@ export class CoinPriceService {
       }
 
       if (
-        candleQuery.baseAddress.toLowerCase() !== WBNB_ADDRESS.toLowerCase() ||
-        tokenAddress.toLowerCase() !== WBNB_ADDRESS.toLowerCase()
+        (candleQuery.baseAddress.toLowerCase() !== WBNB_ADDRESS.toLowerCase() ||
+          tokenAddress.toLowerCase() !== WBNB_ADDRESS.toLowerCase()) &&
+        isBNBPaired
       ) {
         candleArr[i].close *= nativeCoinPriceArry[i].usdPrice;
         candleArr[i].open *= nativeCoinPriceArry[i].usdPrice;
