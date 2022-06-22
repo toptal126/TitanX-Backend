@@ -127,14 +127,16 @@ export class PairService {
           },
         ],
       })
+      .sort({ reserved_usd: -1 })
       .limit(20)
       .toArray();
-    let result: Pair = bestPairs[0];
+    if (bestPairs.length === 0) return null;
+    let result: Pair = bestPairs.at(-1);
     // console.log(bestPairs);
-    bestPairs.forEach((item) => {
-      if (item.token0 == WBNB_ADDRESS || item.token1 == WBNB_ADDRESS)
-        result = item;
-    });
+    // bestPairs.forEach((item) => {
+    //   if (item.token0 == WBNB_ADDRESS || item.token1 == WBNB_ADDRESS)
+    //     result = item;
+    // });
     return result;
   }
 
