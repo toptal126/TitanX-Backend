@@ -16,15 +16,18 @@ const MONGODB_URI = process.env.MONGODB_URI;
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    MongooseModule.forRoot(`${MONGODB_URI}/testDB`, {
+    MongooseModule.forRoot(`${MONGODB_URI}/testDB?authSource=admin`, {
       connectionName: 'testDB',
     }),
-    MongooseModule.forRoot(`${MONGODB_URI}/uniswap_v2_pairs`, {
+    MongooseModule.forRoot(`${MONGODB_URI}/uniswap_v2_pairs?authSource=admin`, {
       connectionName: 'uniswap_v2_pairs',
     }),
-    MongooseModule.forRoot(`${MONGODB_URI}/native_coin_history`, {
-      connectionName: 'native_coin_history',
-    }),
+    MongooseModule.forRoot(
+      `${MONGODB_URI}/native_coin_history?authSource=admin`,
+      {
+        connectionName: 'native_coin_history',
+      },
+    ),
     TodoModule,
     PresaleModule,
     PairModule,

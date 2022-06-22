@@ -28,14 +28,12 @@ import { Pair } from './schemas/pair.schema';
 import { CronService } from './cron.service';
 require('dotenv').config();
 
-const MONGODB_URI = process.env.MONGODB_URI;
 const CURRENT_API_KEY_ARRAY = process.env.BITQUERY_API_KEY_ARRAY.split(' ');
 
 @Injectable()
 export class CoinPriceService {
   private web3;
   private rpcUrl: string;
-  private coinPriceCollection;
 
   constructor(
     @InjectModel(CoinPrice.name)
@@ -44,11 +42,6 @@ export class CoinPriceService {
     const Web3 = require('web3');
     this.rpcUrl = getRandRpcElseOne('');
     this.web3 = new Web3(this.rpcUrl);
-    MongoClient.connect(`${MONGODB_URI}`).then((client: MongoClient) => {
-      this.coinPriceCollection = client
-        .db('native_coin_history')
-        .collection('bsc');
-    });
   }
 
   changeWeb3RpcUrl = () => {
@@ -62,6 +55,7 @@ export class CoinPriceService {
   }
 
   async findLatest(): Promise<CoinPrice> {
+    console.log(await this.model.findOne().exec());
     const latest = await this.model
       .find()
       .sort({ timeStamp: -1 })
