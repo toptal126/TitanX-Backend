@@ -191,17 +191,20 @@ export class CronService {
   @Cron('*/10 * * * * *')
   async testFunction() {
     // this.fetchNewPairs();
+    this.tokenInfoPCSV2Api('0x22eBE6d2cCc03573ce54dbBF14C9F080222708ab');
   }
 
   async tokenInfoPCSV2Api(address) {
     let i = 0;
+    let response;
     while (i < 5)
       try {
-        const response = await axios.get(
+        response = await axios.get(
           `https://api.pancakeswap.info/api/v2/tokens/${address}`,
         );
         return response.data;
       } catch (error) {
+        if (error.response.status == 404) return;
         i++;
       }
 

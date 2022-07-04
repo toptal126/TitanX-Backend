@@ -25,6 +25,7 @@ export class PairController {
   async findByTokenAddress(
     @Param('tokenAddress') tokenAddress: string,
   ): Promise<Pair[]> {
+    this.service.findPairsFromDEX(tokenAddress);
     return await this.service.findByTokenAddress(tokenAddress);
   }
 
