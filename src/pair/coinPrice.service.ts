@@ -314,7 +314,7 @@ export class CoinPriceService {
             tokenContract.methods.decimals().call(),
             tokenContract.methods.balanceOf(DEAD_ADDRESS).call(),
           ]);
-        let isToken1BNB: boolean = true;
+        let isToken1BNB: boolean = false;
         let isToken1BUSD: boolean = false;
         let isBUSDPaired: boolean = false;
         if (bestPair.token1.toLocaleLowerCase() === WBNB_ADDRESS.toLowerCase())
