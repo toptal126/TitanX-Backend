@@ -7,10 +7,12 @@ import { Pair, PairSchema } from './schemas/pair.schema';
 import { CoinPrice, CoinPriceSchema } from './schemas/coinPrice.schema';
 import { CoinPriceController } from './coinPrice.controller';
 import { CronService } from './cron.service';
+import { MetaTxService } from './metaTx.service';
+import { MetaTxController } from './metaTx.controller';
 
 @Module({
-  providers: [PairService, CoinPriceService, CronService],
-  controllers: [PairController, CoinPriceController],
+  providers: [PairService, CoinPriceService, CronService, MetaTxService],
+  controllers: [PairController, CoinPriceController, MetaTxController],
   imports: [
     MongooseModule.forFeature(
       [{ name: Pair.name, schema: PairSchema }],

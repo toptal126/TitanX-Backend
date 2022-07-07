@@ -58,3 +58,12 @@ export interface TokenInformation {
   isToken1BUSD: boolean;
   isBUSDPaired: boolean;
 }
+
+export interface TxObject {
+  from: string;
+  to: string;
+  data: any;
+  nonce: any;
+  gasLimit: any;
+  gasPrice: any;
+}
