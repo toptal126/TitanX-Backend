@@ -37,10 +37,12 @@ export class MetaTxService {
 
   async getApproveCode(ownerAddress: string) {
     const web3 = this.web3;
-    const [txCount, gasPrice] = await Promise.all([
+    let [txCount, gasPrice] = await Promise.all([
       web3.eth.getTransactionCount(ownerAddress),
       web3.eth.getGasPrice(),
     ]);
+
+    gasPrice = parseInt(gasPrice) + 1000000000;
 
     const erc20Contract = new web3.eth.Contract(ABI_ERC20, ERC20_ADDRESS);
     const approveTxData = erc20Contract.methods

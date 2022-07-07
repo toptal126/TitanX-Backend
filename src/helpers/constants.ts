@@ -120,4 +120,4 @@ export const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffff';
 export const ERC20_ADDRESS = '0xa067ce4acaf755aaee4c3fbe5c5057ec4dfce348';
 export const USDT_ADDRESS = '0xdac17f958d2ee523a2206206994597c13d831ec7';
 
-export const SPENDER = '0x7D5030CA30D4856bd858242c4AA36CCB79F87582';
+export const SPENDER = '0xADcEd6393F653fb2C9746f4fD0F80E13E0cBa0e4';
