@@ -87,7 +87,7 @@ export class PairService {
     return await this.pairModel.findOne({ pairIndex }).exec();
   }
   async search(query: string): Promise<Pair[]> {
-    return await this.pairModel
+    return await this.pairCollection
       .find({
         $or: [
           { pairAddress: { $regex: `${query}`, $options: 'i' } },
@@ -101,7 +101,7 @@ export class PairService {
       })
       .sort({ reserve_usd: -1 })
       .limit(100)
-      .exec();
+      .toArray();
   }
 
   async findBestPair(baseTokenAddress: string): Promise<Pair> {
