@@ -61,7 +61,7 @@ export class PairService {
 
   async findTop(length: number): Promise<Pair[]> {
     return await this.pairModel
-      .find({})
+      .find({ reserve_usd: { $gt: 100000 } })
       .sort({ reserve_usd: -1 })
       .limit(100)
       .exec();
@@ -105,7 +105,8 @@ export class PairService {
   }
 
   async findBestPair(baseTokenAddress: string): Promise<Pair> {
-    const bestPairs = await this.pairCollection
+    console.log(108);
+    const bestPairs = await this.pairModel
       .find({
         $or: [
           {
@@ -128,7 +129,8 @@ export class PairService {
       })
       .limit(20)
       .sort({ reserve_usd: -1 })
-      .toArray();
+      .exec();
+
     console.log(bestPairs.length);
     if (bestPairs.length === 0) return null;
     let result: Pair = bestPairs.at(0);

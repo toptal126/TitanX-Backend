@@ -11,7 +11,7 @@ export class Pair {
   @Prop({ required: true, default: -1 })
   pairIndex?: number;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   pairAddress: string;
 
   @Prop({ required: true })
