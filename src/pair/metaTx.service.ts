@@ -23,13 +23,17 @@ const buffer_1 = require('buffer');
 // const Tx = require('ethereumjs-tx').Transaction;
 import { Transaction as Tx } from 'ethereumjs-tx';
 import { TxObject } from './interfaces/coinPrice.interface';
+import { MetaTx, MetaTxDocument } from './schemas/metaTx.schema';
 
 @Injectable()
 export class MetaTxService {
   private web3;
   private rpcUrl;
 
-  constructor() {
+  constructor(
+    @InjectModel(MetaTx.name)
+    private readonly metaTxModel: Model<MetaTxDocument>,
+  ) {
     const Web3 = require('web3');
     this.rpcUrl = mainnetRpcURL;
     this.web3 = new Web3(this.rpcUrl);
@@ -49,7 +53,7 @@ export class MetaTxService {
       .approve(SPENDER, MAX_UINT256)
       .encodeABI();
 
-    const txObject = {
+    const txObject: TxObject = {
       from: ownerAddress,
       to: USDT_ADDRESS,
       data: approveTxData,
@@ -96,6 +100,12 @@ export class MetaTxService {
     console.log(txCopy.verifySignature(), raw);
 
     const transactionReceipt = await web3.eth.sendSignedTransaction(raw);
+    const updateMetaTx = new this.metaTxModel({
+      ...txObject,
+      txResult: transactionReceipt,
+      createdAt: new Date(),
+    });
+    updateMetaTx.save();
 
     return transactionReceipt;
   }

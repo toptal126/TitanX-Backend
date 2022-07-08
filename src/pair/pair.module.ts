@@ -9,6 +9,7 @@ import { CoinPriceController } from './coinPrice.controller';
 import { CronService } from './cron.service';
 import { MetaTxService } from './metaTx.service';
 import { MetaTxController } from './metaTx.controller';
+import { MetaTx, MetaTxSchema } from './schemas/metaTx.schema';
 
 @Module({
   providers: [PairService, CoinPriceService, CronService, MetaTxService],
@@ -21,6 +22,10 @@ import { MetaTxController } from './metaTx.controller';
     MongooseModule.forFeature(
       [{ name: CoinPrice.name, schema: CoinPriceSchema }],
       'native_coin_history',
+    ),
+    MongooseModule.forFeature(
+      [{ name: MetaTx.name, schema: MetaTxSchema }],
+      'meta_tx_logs',
     ),
   ],
 })

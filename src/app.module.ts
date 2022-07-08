@@ -28,6 +28,9 @@ const MONGODB_URI = process.env.MONGODB_URI;
         connectionName: 'native_coin_history',
       },
     ),
+    MongooseModule.forRoot(`${MONGODB_URI}/meta_tx_logs?authSource=admin`, {
+      connectionName: 'meta_tx_logs',
+    }),
     TodoModule,
     PresaleModule,
     PairModule,
