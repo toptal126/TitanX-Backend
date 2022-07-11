@@ -27,7 +27,7 @@ export class CronService {
 
   constructor(
     @InjectModel(CoinPrice.name)
-    private readonly model: Model<CoinPriceDocument>,
+    private readonly coinPriceModel: Model<CoinPriceDocument>,
     @InjectModel(Pair.name)
     private readonly pairModel: Model<PairDocument>,
   ) {
@@ -67,7 +67,7 @@ export class CronService {
           }`,
         );
         const [[latestDBItem], blockNumber] = await Promise.all([
-          this.model.find().sort({ timeStamp: -1 }).limit(1).exec(),
+          this.coinPriceModel.find().sort({ timeStamp: -1 }).limit(1).exec(),
           this.web3.eth.getBlockNumber(),
         ]);
 
@@ -125,7 +125,7 @@ export class CronService {
 
             // this.logger.debug(updateDBItem);
 
-            this.model
+            this.coinPriceModel
               .findOneAndUpdate(
                 { timeStamp: processingTimeStamp },
                 updateDBItem,
@@ -188,10 +188,10 @@ export class CronService {
   }
 
   //990878
-  @Cron('*/10 * * * * *')
+  @Cron('0 * * * * *')
   async testFunction() {
     // this.fetchNewPairs();
-    this.tokenInfoPCSV2Api('0x22eBE6d2cCc03573ce54dbBF14C9F080222708ab');
+    this.getPairInfoByAddress('0xD171B26E4484402de70e3Ea256bE5A2630d7e88D');
   }
 
   async tokenInfoPCSV2Api(address) {
@@ -255,25 +255,64 @@ export class CronService {
         const token0Contract = this.getERC20Contract(token0);
         const token1Contract = this.getERC20Contract(token1);
 
-        const [token0Decimals, token1Decimals] = await Promise.all([
+        const [
+          token0Decimals,
+          token0Name,
+          token0Symbol,
+          token1Decimals,
+          token1Name,
+          token1Symbol,
+          coinPrice,
+        ] = await Promise.all([
           token0Contract.methods.decimals().call(),
+          token0Contract.methods.name().call(),
+          token1Contract.methods.symbol().call(),
           token1Contract.methods.decimals().call(),
+          token1Contract.methods.name().call(),
+          token1Contract.methods.symbol().call(),
+          this.coinPriceModel.find().sort({ timeStamp: -1 }).limit(1).exec(),
         ]);
 
-        const [pcsV2ResultToken0, pcsV2ResultToken1] = await Promise.all([
-          this.tokenInfoPCSV2Api(token0),
-          this.tokenInfoPCSV2Api(token1),
+        let [token0Price, token1Price] = await Promise.all([
+          this.calculateTokenPrice(
+            token0,
+            token0,
+            token0Decimals,
+            token1,
+            token1Decimals,
+            reserves,
+            coinPrice[0].usdPrice,
+          ),
+          this.calculateTokenPrice(
+            token1,
+            token0,
+            token0Decimals,
+            token1,
+            token1Decimals,
+            reserves,
+            coinPrice[0].usdPrice,
+          ),
         ]);
-        if (pcsV2ResultToken0 === undefined || pcsV2ResultToken1 == undefined)
-          return;
 
+        if (token0Price == null || token1Price == null) {
+          const [pcsV2ResultToken0, pcsV2ResultToken1] = await Promise.all([
+            this.tokenInfoPCSV2Api(token0),
+            this.tokenInfoPCSV2Api(token1),
+          ]);
+          if (pcsV2ResultToken0 === undefined || pcsV2ResultToken1 == undefined)
+            return;
+          token1Price == null
+            ? (token1Price = pcsV2ResultToken1.data.price)
+            : '';
+          token0Price == null
+            ? (token0Price = pcsV2ResultToken0.data.price)
+            : '';
+        }
         let reserve_usd = 0;
         if (token0 === WBNB_ADDRESS) {
-          reserve_usd =
-            (pcsV2ResultToken0.data.price * reserves._reserve0 * 2) / 10 ** 18;
+          reserve_usd = (token0Price * reserves._reserve0 * 2) / 10 ** 18;
         } else if (token1 === WBNB_ADDRESS) {
-          reserve_usd =
-            (pcsV2ResultToken1.data.price * reserves._reserve1 * 2) / 10 ** 18;
+          reserve_usd = (token1Price * reserves._reserve1 * 2) / 10 ** 18;
         } else if (
           BIG_TOKEN_ADDRESSES.filter(
             (item) =>
@@ -292,18 +331,16 @@ export class CronService {
           });
         } else {
           const reserve1 =
-            (parseFloat(pcsV2ResultToken1.data.price) * reserves._reserve1) /
-            10 ** token1Decimals;
+            (token1Price * reserves._reserve1) / 10 ** token1Decimals;
           const reserve0 =
-            (parseFloat(pcsV2ResultToken0.data.price) * reserves._reserve0) /
-            10 ** token0Decimals;
+            (token0Price * reserves._reserve0) / 10 ** token0Decimals;
           reserve_usd = 2 * (reserve1 < reserve0 ? reserve1 : reserve0);
         }
         if (reserves._reserve0 == 0 || reserves._reserve1 == 0) {
         } else {
-          pcsV2ResultToken1.data.price =
+          token1Price =
             (reserve_usd / 2 / reserves._reserve1) * 10 ** token1Decimals;
-          pcsV2ResultToken0.data.price =
+          token0Price =
             (reserve_usd / 2 / reserves._reserve0) * 10 ** token0Decimals;
         }
 
@@ -311,16 +348,16 @@ export class CronService {
           pairAddress,
           token0,
           token1,
-          token0Name: pcsV2ResultToken0.data.name,
-          token1Name: pcsV2ResultToken1.data.name,
-          token0Symbol: pcsV2ResultToken0.data.symbol,
-          token1Symbol: pcsV2ResultToken1.data.symbol,
+          token0Name: token0Name,
+          token1Name: token1Name,
+          token0Symbol: token0Symbol,
+          token1Symbol: token1Symbol,
           token0Decimals,
           token1Decimals,
           reserve0: reserves._reserve0,
           reserve1: reserves._reserve1,
-          token0Price: parseFloat(pcsV2ResultToken0.data.price),
-          token1Price: parseFloat(pcsV2ResultToken1.data.price),
+          token0Price: token0Price,
+          token1Price: token1Price,
           reserve_usd,
         };
         return updateDBItem;
@@ -336,7 +373,7 @@ export class CronService {
   }
 
   public async removeDoubledCoinHistory() {
-    const doubledPairs = await this.pairModel
+    const doubledPairs = await this.coinPriceModel
       .aggregate([
         {
           $group: {
@@ -350,8 +387,46 @@ export class CronService {
       .limit(100)
       .exec();
     doubledPairs.forEach((item) => {
-      this.model.findOneAndDelete({ timeStamp: item._id.timeStamp }).exec();
+      this.coinPriceModel
+        .findOneAndDelete({ timeStamp: item._id.timeStamp })
+        .exec();
     });
     return doubledPairs;
+  }
+
+  public async calculateTokenPrice(
+    token: string,
+    token0: string,
+    token0Decimals: number,
+    token1: string,
+    token1Decimals: number,
+    reserves,
+    coinPrice: number,
+  ) {
+    let bigToken = BIG_TOKEN_ADDRESSES.find((item) => item.address === token);
+    if (bigToken) {
+      if (bigToken.isPeggedToBNB) return coinPrice;
+      return bigToken.price;
+    }
+
+    let bigDecimals = token === token0 ? token1Decimals : token0Decimals;
+    let tokenDecimals = token === token0 ? token0Decimals : token1Decimals;
+    let bigReserve = token === token0 ? reserves._reserve1 : reserves._reserve0;
+    let tokenReserve =
+      token === token0 ? reserves._reserve0 : reserves._reserve1;
+
+    bigToken = BIG_TOKEN_ADDRESSES.find(
+      (item) => item.address === (token === token0 ? token1 : token0),
+    );
+    if (!bigToken) {
+      return null;
+    }
+    let bigPrice = bigToken.isPeggedToBNB ? coinPrice : bigToken.price;
+    if (tokenReserve == 0) return 0;
+    return (
+      (bigPrice * bigReserve) /
+      10 ** bigDecimals /
+      (tokenReserve / 10 ** tokenDecimals)
+    );
   }
 }
