@@ -342,7 +342,7 @@ export class CronService {
         ] = await Promise.all([
           token0Contract.methods.decimals().call(),
           token0Contract.methods.name().call(),
-          token1Contract.methods.symbol().call(),
+          token0Contract.methods.symbol().call(),
           token1Contract.methods.decimals().call(),
           token1Contract.methods.name().call(),
           token1Contract.methods.symbol().call(),
