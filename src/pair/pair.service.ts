@@ -204,6 +204,7 @@ export class PairService {
             this.cronService.getPairInfoByAddress(pairAddress),
           ),
         );
+        console.log('pairArray', pairArray);
         const result = [];
         pairArray.forEach((resultItem, index) => {
           if (resultItem === null) return;
