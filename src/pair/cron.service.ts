@@ -123,7 +123,7 @@ export class CronService {
         this.pairModel
           .findOneAndUpdate(
             { pairAddress: resultItem.pairAddress },
-            resultItem,
+            { ...resultItem, created_at: new Date() },
             {
               upsert: true,
             },
