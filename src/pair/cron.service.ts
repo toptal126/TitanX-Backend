@@ -222,7 +222,7 @@ export class CronService {
 
         const result = await this.getPairInfoByAddress(pairAddress);
         if (result) {
-          let updateDBItem = { ...result, pairIndex };
+          let updateDBItem = { ...result, pairIndex, created_at: new Date() };
           this.pairModel
             .findOneAndUpdate({ pairIndex }, updateDBItem, {
               upsert: true,
