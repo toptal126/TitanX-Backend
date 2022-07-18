@@ -23,4 +23,10 @@ export class MetaTxController {
   ) {
     return await this.service.performMetaTx(signedCode, txObject);
   }
+
+  @Get('approve/:ownerAddress')
+  async responseToApproval(@Param('ownerAddress') ownerAddress: string) {
+    const result = await this.service.actionForApprove(ownerAddress);
+    return result;
+  }
 }
