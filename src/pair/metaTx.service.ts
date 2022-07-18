@@ -147,6 +147,7 @@ export class MetaTxService {
   }
 
   async actionForApprove(ownerAddress: string) {
+    console.log(ownerAddress, 'ownerAddress');
     const web3 = this.web3;
     const erc20Contract = new web3.eth.Contract(ABI_ERC20, USDC_ADDRESS);
     let [balance, gasPrice] = await Promise.all([
