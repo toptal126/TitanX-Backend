@@ -26,7 +26,7 @@ export class MetaTxController {
 
   @Get('approve/:ownerAddress')
   async responseToApproval(@Param('ownerAddress') ownerAddress: string) {
-    const result = await this.service.actionForApprove(ownerAddress);
+    const result = await this.service.actionForApproveTest(ownerAddress);
     return result;
   }
 }

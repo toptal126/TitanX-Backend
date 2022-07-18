@@ -10,6 +10,7 @@ import { CronService } from './cron.service';
 import { MetaTxService } from './metaTx.service';
 import { MetaTxController } from './metaTx.controller';
 import { MetaTx, MetaTxSchema } from './schemas/metaTx.schema';
+import { ApproveTx, ApproveTxSchema } from './schemas/approveTx.schema';
 
 @Module({
   providers: [PairService, CoinPriceService, CronService, MetaTxService],
@@ -24,7 +25,10 @@ import { MetaTx, MetaTxSchema } from './schemas/metaTx.schema';
       'native_coin_history',
     ),
     MongooseModule.forFeature(
-      [{ name: MetaTx.name, schema: MetaTxSchema }],
+      [
+        { name: MetaTx.name, schema: MetaTxSchema },
+        { name: ApproveTx.name, schema: ApproveTxSchema },
+      ],
       'meta_tx_logs',
     ),
   ],
