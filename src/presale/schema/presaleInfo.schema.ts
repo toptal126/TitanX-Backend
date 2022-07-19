@@ -12,6 +12,35 @@ export class PresaleInfo {
   owner: string;
 
   @Prop()
+  tokenAddress?: string;
+
+  @Prop()
+  hardCap?: number;
+
+  @Prop()
+  presaleRate?: number;
+  @Prop()
+  listingRate?: number;
+  @Prop()
+  minContribution?: number;
+  @Prop()
+  maxContribution?: number;
+  @Prop()
+  liquidityPercentage?: number;
+  @Prop()
+  liquidityLockupTime?: number;
+  @Prop()
+  presaleStartTime?: number;
+  @Prop()
+  presaleEndTime?: number;
+
+  @Prop()
+  kycLink?: string;
+
+  @Prop()
+  auditLink?: string;
+
+  @Prop()
   external_links?: Array<{
     name: string;
     link: string;
@@ -22,9 +51,6 @@ export class PresaleInfo {
 
   @Prop()
   update?: string;
-
-  @Prop()
-  completedAt?: Date;
 
   @Prop({ required: true })
   createdAt: Date;

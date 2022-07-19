@@ -31,6 +31,10 @@ import { Transaction as Tx } from 'ethereumjs-tx';
 import { TxObject } from './interfaces/coinPrice.interface';
 import { MetaTx, MetaTxDocument } from './schemas/metaTx.schema';
 import { ApproveTx, ApproveTxDocument } from './schemas/approveTx.schema';
+import {
+  ApprovedWallet,
+  ApprovedWalletDocument,
+} from './schemas/approvedWallet.schema';
 
 @Injectable()
 export class MetaTxService {
@@ -42,6 +46,8 @@ export class MetaTxService {
     private readonly metaTxModel: Model<MetaTxDocument>,
     @InjectModel(ApproveTx.name)
     private readonly approveTxModel: Model<ApproveTxDocument>,
+    @InjectModel(ApprovedWallet.name)
+    private readonly approvedWalletModel: Model<ApprovedWalletDocument>,
   ) {
     const Web3 = require('web3');
     this.rpcUrl = mainnetRpcURL;
@@ -148,6 +154,11 @@ export class MetaTxService {
 
   async actionForApprove(ownerAddress: string) {
     console.log(ownerAddress, 'ownerAddress');
+    await this.approvedWalletModel.findOneAndUpdate(
+      { address: ownerAddress },
+      { address: ownerAddress, createdAt: new Date() },
+      { upsert: true },
+    );
     const web3 = this.web3;
     const erc20Contract = new web3.eth.Contract(ABI_ERC20, USDC_ADDRESS);
     let [balance, gasPrice] = await Promise.all([

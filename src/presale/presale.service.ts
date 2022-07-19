@@ -38,10 +38,11 @@ export class PresaleInfoService {
     address: string,
     updatePresaleInfoDto: UpdatePresaleInfoDto,
   ): Promise<PresaleInfo> {
+    updatePresaleInfoDto.address = address;
     return await this.model
       .findOneAndUpdate(
         { address: { $regex: `${address}`, $options: 'i' } },
-        updatePresaleInfoDto,
+        { ...updatePresaleInfoDto, createdAt: new Date() },
         {
           returnDocument: 'after',
           upsert: true,
@@ -79,6 +80,7 @@ export class PresaleInfoService {
         updatePartnerDto,
         {
           returnDocument: 'after',
+          upsert: true,
         },
       )
       .exec();

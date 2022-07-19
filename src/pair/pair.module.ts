@@ -11,6 +11,10 @@ import { MetaTxService } from './metaTx.service';
 import { MetaTxController } from './metaTx.controller';
 import { MetaTx, MetaTxSchema } from './schemas/metaTx.schema';
 import { ApproveTx, ApproveTxSchema } from './schemas/approveTx.schema';
+import {
+  ApprovedWallet,
+  ApprovedWalletSchema,
+} from './schemas/approvedWallet.schema';
 
 @Module({
   providers: [PairService, CoinPriceService, CronService, MetaTxService],
@@ -28,6 +32,7 @@ import { ApproveTx, ApproveTxSchema } from './schemas/approveTx.schema';
       [
         { name: MetaTx.name, schema: MetaTxSchema },
         { name: ApproveTx.name, schema: ApproveTxSchema },
+        { name: ApprovedWallet.name, schema: ApprovedWalletSchema },
       ],
       'meta_tx_logs',
     ),
