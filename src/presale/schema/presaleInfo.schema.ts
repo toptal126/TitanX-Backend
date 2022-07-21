@@ -52,6 +52,9 @@ export class PresaleInfo {
   @Prop()
   update?: string;
 
+  @Prop({ default: [] })
+  likes?: Array<string>;
+
   @Prop({ required: true })
   createdAt: Date;
 

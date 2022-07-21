@@ -31,6 +31,14 @@ export class PresaleController {
     return await this.service.findOne(address);
   }
 
+  @Post('like/:address:/:wallet')
+  async like(
+    @Param('address') address: string,
+    @Param('wallet') wallet: string,
+  ) {
+    return await this.service.likeToggle(address, wallet);
+  }
+
   @Post()
   async create(@Body() createPresaleInfoDto: UpdatePresaleInfoDto) {
     return await this.service.create(createPresaleInfoDto);
