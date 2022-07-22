@@ -38,6 +38,13 @@ export class PresaleInfoService {
     const presale = await this.model.findOne({
       address: { $regex: `${address}`, $options: 'i' },
     });
+    if (!presale) {
+      return await new this.model({
+        address,
+        createdAt: new Date(),
+        likes: [wallet],
+      }).save();
+    }
     const indexOfWallet: number = presale.likes.indexOf(wallet);
     if (indexOfWallet >= 0) presale.likes.splice(indexOfWallet, 1);
     else presale.likes.push(wallet);
