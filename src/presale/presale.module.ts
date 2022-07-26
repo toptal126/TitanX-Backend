@@ -7,6 +7,7 @@ import { Partner, PartnerSchema } from './schema/partner.schema';
 import { Article, ArticleSchema } from './schema/article.schema';
 import { ArticleController } from './article.controller';
 import { ArticleService } from './article.service';
+import { Profile, ProfileSchema } from './schema/profile.schema';
 
 @Module({
   providers: [PresaleInfoService, ArticleService],
@@ -17,6 +18,7 @@ import { ArticleService } from './article.service';
         { name: PresaleInfo.name, schema: PresaleInfoSchema },
         { name: Partner.name, schema: PartnerSchema },
         { name: Article.name, schema: ArticleSchema },
+        { name: Profile.name, schema: ProfileSchema },
       ],
       'testDB',
     ),

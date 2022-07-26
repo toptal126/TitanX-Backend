@@ -5,6 +5,7 @@ import { UpdatePresaleInfoDto } from './dto/update-presaleInfo.dto';
 import { UpdatePartnerDto } from './dto/update-partner.dto';
 import { PresaleInfo, PresaleInfoDocument } from './schema/presaleInfo.schema';
 import { Partner, PartnerDocument } from './schema/partner.schema';
+import { Profile, ProfileDocument } from './schema/profile.schema';
 
 @Injectable()
 export class PresaleInfoService {
@@ -14,15 +15,32 @@ export class PresaleInfoService {
 
     @InjectModel(Partner.name)
     private readonly partner_model: Model<PartnerDocument>,
+
+    @InjectModel(Profile.name)
+    private readonly profile_model: Model<ProfileDocument>,
   ) {}
 
   async create(
     createPresaleInfoDto: UpdatePresaleInfoDto,
   ): Promise<PresaleInfo> {
-    return await new this.model({
-      ...createPresaleInfoDto,
-      createdAt: new Date(),
-    }).save();
+    const [ownerProfile, createdPresale] = await Promise.all([
+      this.profile_model.findOne({ wallet: createPresaleInfoDto.owner }).exec(),
+      new this.model({
+        ...createPresaleInfoDto,
+        createdAt: new Date(),
+      }).save(),
+    ]);
+    if (!ownerProfile) {
+      await new this.profile_model({
+        wallet: createPresaleInfoDto.owner,
+        presaleNumber: 1,
+        createdAt: new Date(),
+      }).save();
+    } else {
+      ownerProfile.presaleNumber += 1;
+      await ownerProfile.save();
+    }
+    return createdPresale;
   }
 
   async findAll(): Promise<PresaleInfo[]> {
