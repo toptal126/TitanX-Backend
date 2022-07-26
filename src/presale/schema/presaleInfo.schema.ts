@@ -13,6 +13,12 @@ export class PresaleInfo {
 
   @Prop()
   tokenAddress?: string;
+  @Prop()
+  name?: string;
+  @Prop()
+  symbol?: string;
+  @Prop()
+  decimals?: number;
 
   @Prop()
   hardCap?: number;

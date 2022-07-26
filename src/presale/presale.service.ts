@@ -34,6 +34,9 @@ export class PresaleInfoService {
       address: { $regex: `${address}`, $options: 'i' },
     });
   }
+  async presalesByOwner(owner: string): Promise<PresaleInfo[]> {
+    return await this.model.find({ owner }).exec();
+  }
   async likeToggle(address: string, wallet: string): Promise<PresaleInfo> {
     const presale = await this.model.findOne({
       address: { $regex: `${address}`, $options: 'i' },

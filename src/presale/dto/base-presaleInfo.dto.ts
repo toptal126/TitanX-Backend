@@ -2,6 +2,10 @@ export class BasePresaleInfoDto {
   address: string;
   owner: string;
   tokenAddress?: string;
+  name?: string;
+  symbol?: string;
+  decimals?: number;
+
   hardCap?: number;
   presaleRate?: number;
   listingRate?: number;
