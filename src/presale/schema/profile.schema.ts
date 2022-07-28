@@ -29,9 +29,9 @@ export class Profile {
   presaleNumber: number;
 
   @Prop({ required: true, default: [] })
-  followers: Array<Types.ObjectId>;
+  followers: Array<string>; // array of wallet
   @Prop({ required: true, default: [] })
-  following: Array<Types.ObjectId>;
+  following: Array<string>; // array of wallet
 
   @Prop({ required: true, default: false })
   featured: boolean;

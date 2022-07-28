@@ -59,4 +59,19 @@ export class ProfileController {
   async verify(@Body() verifyProfileDto: VerifyProfileDto) {
     return await this.service.verifySignatureHash(verifyProfileDto);
   }
+  @Put('follow/:username/:wallet')
+  async toggleFollowing(
+    @Param('username') username: string,
+    @Param('wallet') wallet: string,
+  ) {
+    return await this.service.toggleFollowing(username, wallet);
+  }
+  @Get('followers/:username')
+  async followersData(@Param('username') username: string) {
+    return await this.service.followersData(username);
+  }
+  @Get('following/:username')
+  async followingData(@Param('username') username: string) {
+    return await this.service.followingData(username);
+  }
 }

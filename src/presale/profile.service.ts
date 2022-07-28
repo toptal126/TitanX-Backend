@@ -102,4 +102,79 @@ export class ProfileService {
     }
     return existingObj;
   }
+  async toggleFollowing(username: string, wallet: string): Promise<Profile> {
+    const [existingObj, follower] = await Promise.all([
+      this.findOneByUsername(username),
+      this.findOneByWallet(wallet),
+    ]);
+    if (!follower) {
+      throw new HttpException('Invalid account!', HttpStatus.BAD_REQUEST);
+    }
+    if (!existingObj) {
+      throw new HttpException(
+        'Invalid profile to follow!',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (follower.wallet === existingObj.wallet) {
+      throw new HttpException("Can't follow self!", HttpStatus.BAD_REQUEST);
+    }
+
+    const indexOfFollowerWallet: number = existingObj.followers.indexOf(wallet);
+    if (indexOfFollowerWallet >= 0)
+      existingObj.followers.splice(indexOfFollowerWallet, 1);
+    else existingObj.followers.push(wallet);
+
+    const indexOfFollowingWallet: number = follower.following.indexOf(
+      existingObj.wallet,
+    );
+    if (indexOfFollowingWallet >= 0)
+      follower.following.splice(indexOfFollowingWallet, 1);
+    else follower.following.push(existingObj.wallet);
+
+    await Promise.all([existingObj.save(), follower.save()]);
+    return existingObj;
+  }
+  async followersData(username: string): Promise<Profile[]> {
+    const existingObj = await this.findOneByUsername(username);
+    if (!existingObj) {
+      throw new HttpException(
+        'Invalid request for non-existing profile!',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const followersProfiles = await this.model
+      .find({
+        wallet: { $in: existingObj.followers },
+      })
+      .select({
+        username: 1,
+        bio: 1,
+        avatarLink: 1,
+        wallet: 1,
+      })
+      .exec();
+    return followersProfiles;
+  }
+  async followingData(username: string): Promise<Profile[]> {
+    const existingObj = await this.findOneByUsername(username);
+    if (!existingObj) {
+      throw new HttpException(
+        'Invalid request for non-existing profile!',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const followingProfiles = await this.model
+      .find({
+        wallet: { $in: existingObj.following },
+      })
+      .select({
+        username: 1,
+        bio: 1,
+        avatarLink: 1,
+        wallet: 1,
+      })
+      .exec();
+    return followingProfiles;
+  }
 }
