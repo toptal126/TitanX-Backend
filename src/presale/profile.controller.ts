@@ -7,7 +7,11 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { CreateProfileDto, VerifyProfileDto } from './dto/profile.dto';
+import {
+  CreateProfileDto,
+  UpdateProfileDto,
+  VerifyProfileDto,
+} from './dto/profile.dto';
 
 import { ProfileService } from './profile.service';
 
@@ -23,6 +27,14 @@ export class ProfileController {
   @Get(':id')
   async getOneById(@Param('id') id: string) {
     return await this.service.findOne(id);
+  }
+
+  @Put(':wallet')
+  async updateOneByWallet(
+    @Param('wallet') wallet: string,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return await this.service.updateOneByWallet(wallet, updateProfileDto);
   }
 
   @Get('nonce/:wallet')
@@ -42,6 +54,5 @@ export class ProfileController {
   @Post('verify')
   async verify(@Body() verifyProfileDto: VerifyProfileDto) {
     return await this.service.verifySignatureHash(verifyProfileDto);
-    console.log(verifyProfileDto);
   }
 }

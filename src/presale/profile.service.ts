@@ -1,7 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateProfileDto, VerifyProfileDto } from './dto/profile.dto';
+import {
+  CreateProfileDto,
+  UpdateProfileDto,
+  VerifyProfileDto,
+} from './dto/profile.dto';
 import { Profile, ProfileDocument } from './schema/profile.schema';
 import { v4 as uuidv4 } from 'uuid';
 import { PresaleInfo, PresaleInfoDocument } from './schema/presaleInfo.schema';
@@ -24,6 +28,26 @@ export class ProfileService {
   }
   async findOne(id: string): Promise<Profile> {
     return await this.model.findById(id).exec();
+  }
+  async updateOneByWallet(
+    wallet: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<Profile> {
+    const existingObj = await this.findOneByWallet(wallet);
+
+    const recovered = this.web3.eth.accounts.recover(
+      existingObj.uuid,
+      updateProfileDto.signatureHash,
+    );
+    if (recovered === existingObj.wallet) {
+      existingObj.username = updateProfileDto.username;
+      existingObj.bio = updateProfileDto.bio;
+      existingObj.avatarLink = updateProfileDto.avatarLink;
+      existingObj.bannerLink = updateProfileDto.bannerLink;
+      existingObj.verified = true;
+      await existingObj.save();
+    }
+    return existingObj;
   }
   async findOneByWallet(wallet: string): Promise<ProfileDocument> {
     return await this.model.findOne({ wallet }).exec();

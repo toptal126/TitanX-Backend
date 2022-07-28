@@ -14,6 +14,13 @@ export class Profile {
 
   @Prop({ required: true })
   uuid: string;
+  @Prop()
+  bio: string;
+
+  @Prop()
+  avatarLink: string;
+  @Prop()
+  bannerLink: string;
 
   @Prop({ required: true, default: 0 })
   articleNumber: number;
