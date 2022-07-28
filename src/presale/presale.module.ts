@@ -8,10 +8,12 @@ import { Article, ArticleSchema } from './schema/article.schema';
 import { ArticleController } from './article.controller';
 import { ArticleService } from './article.service';
 import { Profile, ProfileSchema } from './schema/profile.schema';
+import { ProfileController } from './profile.controller';
+import { ProfileService } from './profile.service';
 
 @Module({
-  providers: [PresaleInfoService, ArticleService],
-  controllers: [PresaleController, ArticleController],
+  providers: [PresaleInfoService, ArticleService, ProfileService],
+  controllers: [PresaleController, ArticleController, ProfileController],
   imports: [
     MongooseModule.forFeature(
       [

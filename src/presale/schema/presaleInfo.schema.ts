@@ -8,6 +8,10 @@ export class PresaleInfo {
   @Prop()
   address: string;
 
+  // 97 bsc-testnet, 56 bsc
+  @Prop({ required: true, default: 97 })
+  chainId: number;
+
   @Prop()
   owner: string;
 

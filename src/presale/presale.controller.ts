@@ -95,9 +95,12 @@ export class PresaleController {
     return await this.service.update_partner(address, updatePartnerDto);
   }
 
-  @Get('owner/:owner')
-  async presalesByOwner(@Param('owner') owner: string) {
-    return await this.service.presalesByOwner(owner);
+  @Get('owner/:chainId/:owner')
+  async presalesByOwner(
+    @Param('chainId') chainId: number,
+    @Param('owner') owner: string,
+  ) {
+    return await this.service.presalesByOwner(chainId, owner);
   }
   @Post('like/:address/:wallet')
   async like(
