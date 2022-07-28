@@ -5,14 +5,26 @@ export type ProfileDocument = Profile & Document;
 
 @Schema()
 export class Profile {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
+  username: string;
+  @Prop({ required: true, unique: true })
   wallet: string;
+  @Prop({ required: true, default: false })
+  verified: boolean;
+
+  @Prop({ required: true })
+  uuid: string;
 
   @Prop({ required: true, default: 0 })
   articleNumber: number;
 
   @Prop({ required: true, default: 0 })
-  presaleNumber: string;
+  presaleNumber: number;
+
+  @Prop({ required: true, default: [] })
+  followers: Array<Types.ObjectId>;
+  @Prop({ required: true, default: [] })
+  following: Array<Types.ObjectId>;
 
   @Prop({ required: true, default: false })
   featured: boolean;
