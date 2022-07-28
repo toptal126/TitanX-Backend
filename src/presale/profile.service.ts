@@ -52,6 +52,9 @@ export class ProfileService {
   async findOneByWallet(wallet: string): Promise<ProfileDocument> {
     return await this.model.findOne({ wallet }).exec();
   }
+  async findOneByUsername(username: string): Promise<ProfileDocument> {
+    return await this.model.findOne({ username }).exec();
+  }
   async create(createProfileDto: CreateProfileDto): Promise<Profile> {
     try {
       const checksummedWallet = this.web3.utils.toChecksumAddress(

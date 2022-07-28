@@ -46,6 +46,10 @@ export class ProfileController {
   async getOneByWallet(@Param('wallet') wallet: string) {
     return await this.service.findOneByWallet(wallet);
   }
+  @Get('u/:username')
+  async getOneByUsername(@Param('username') username: string) {
+    return await this.service.findOneByUsername(username);
+  }
 
   @Post()
   async create(@Body() createProfileDto: CreateProfileDto) {
