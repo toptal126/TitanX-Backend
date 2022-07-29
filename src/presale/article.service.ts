@@ -16,7 +16,7 @@ export class ArticleService {
   ) {}
 
   async findAll(): Promise<Article[]> {
-    return await this.model.find().exec();
+    return await this.model.find({ thread: undefined }).exec();
   }
   async findOne(id: string): Promise<Article> {
     return await this.model.findById(id).exec();
@@ -26,11 +26,10 @@ export class ArticleService {
   }
 
   async create(createArticleDto: CreateArticleDto): Promise<Article> {
+    let parentArticle;
     if (createArticleDto.thread) {
-      const parentArticle = await this.model
-        .findById(createArticleDto.thread)
-        .exec();
-      if (!parentArticle) {
+      parentArticle = await this.model.findById(createArticleDto.thread).exec();
+      if (!parentArticle || parentArticle.thread) {
         throw new HttpException(
           "Can't find main post!",
           HttpStatus.BAD_REQUEST,
@@ -46,11 +45,30 @@ export class ArticleService {
       try {
         author.articleNumber += 1;
         author.save();
-        return await new this.model({
+        const createdArticle = await new this.model({
           ...createArticleDto,
+          tags: !createArticleDto.thread
+            ? createArticleDto.tags.split(',').map((item) => item.trim())
+            : [],
+          link: ' ',
+          subject: createArticleDto.thread
+            ? parentArticle.subject
+            : createArticleDto.subject,
           createdAt: new Date(),
         }).save();
+        createdArticle.link = `${createdArticle.subject
+          .toLowerCase()
+          .replace(/[^a-zA-Z ]/g, '')
+          .replaceAll(' ', '-')}`;
+        if (createArticleDto.thread) {
+          createdArticle.link += `-${parentArticle._id}?reply=${createdArticle._id}`;
+        } else {
+          createdArticle.link += `-${createdArticle._id}`;
+        }
+        await createdArticle.save();
+        return createdArticle;
       } catch (error) {
+        console.log(error);
         throw new HttpException(
           'Unable to create post!',
           HttpStatus.INTERNAL_SERVER_ERROR,

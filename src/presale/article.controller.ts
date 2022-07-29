@@ -25,9 +25,9 @@ export class ArticleController {
     return await this.service.findOne(id);
   }
 
-  @Get('author/:author')
-  async articlesByAuthor(@Param('author') author: string) {
-    return await this.service.articlesByAuthor(author);
+  @Get('u/:wallet')
+  async articlesByAuthor(@Param('wallet') wallet: string) {
+    return await this.service.articlesByAuthor(wallet);
   }
 
   @Post()

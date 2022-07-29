@@ -11,8 +11,11 @@ export class Article {
   @Prop({ type: SchemaTypes.ObjectId, ref: Article.name, default: null })
   thread: Types.ObjectId;
 
-  @Prop({ required: true })
+  @Prop()
   subject: string;
+
+  @Prop({ required: true })
+  link: string;
 
   @Prop({ required: true })
   markdown: string;
@@ -26,8 +29,8 @@ export class Article {
   @Prop({ default: [] })
   likes: Array<string>;
 
-  @Prop({ default: ' ' })
-  tags: string;
+  @Prop({ default: [] })
+  tags: Array<string>;
 
   @Prop({ required: true })
   createdAt: Date;
