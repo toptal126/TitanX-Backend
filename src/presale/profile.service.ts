@@ -52,6 +52,19 @@ export class ProfileService {
   async findOneByWallet(wallet: string): Promise<ProfileDocument> {
     return await this.model.findOne({ wallet }).exec();
   }
+  async findAutherByWallet(wallet: string): Promise<ProfileDocument> {
+    return await this.model
+      .findOne({ wallet })
+      .select({
+        username: 1,
+        bio: 1,
+        avatarLink: 1,
+        wallet: 1,
+        followers: 1,
+        following: 1,
+      })
+      .exec();
+  }
   async findOneByUsername(username: string): Promise<ProfileDocument> {
     return await this.model.findOne({ username }).exec();
   }
