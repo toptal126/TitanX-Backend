@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Partner, PartnerDocument } from './schema/partner.schema';
+import { Profile, ProfileDocument } from './schema/profile.schema';
 import { Article, ArticleDocument } from './schema/article.schema';
 import { CreateArticleDto } from './dto/article.dto';
 
@@ -11,8 +11,8 @@ export class ArticleService {
     @InjectModel(Article.name)
     private readonly model: Model<ArticleDocument>,
 
-    @InjectModel(Partner.name)
-    private readonly partner_model: Model<PartnerDocument>,
+    @InjectModel(Profile.name)
+    private readonly profileModel: Model<ProfileDocument>,
   ) {}
 
   async findAll(): Promise<Article[]> {
@@ -21,8 +21,8 @@ export class ArticleService {
   async findOne(id: string): Promise<Article> {
     return await this.model.findById(id).exec();
   }
-  async articlesByAuthor(author: string): Promise<Article[]> {
-    return await this.model.find({ author }).exec();
+  async articlesByAuthor(wallet: string): Promise<ArticleDocument[]> {
+    return await this.model.find({ wallet }).exec();
   }
 
   async create(createArticleDto: CreateArticleDto): Promise<Article> {
@@ -39,16 +39,25 @@ export class ArticleService {
       parentArticle.replyNumber++;
       parentArticle.save();
     }
-    try {
-      return await new this.model({
-        ...createArticleDto,
-        createdAt: new Date(),
-      }).save();
-    } catch (error) {
-      throw new HttpException(
-        'Unable to create Post!',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+    const author = await this.profileModel
+      .findOne({ wallet: createArticleDto.wallet })
+      .exec();
+    if (author?.verified === true) {
+      try {
+        author.articleNumber += 1;
+        author.save();
+        return await new this.model({
+          ...createArticleDto,
+          createdAt: new Date(),
+        }).save();
+      } catch (error) {
+        throw new HttpException(
+          'Unable to create post!',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    } else {
+      throw new HttpException('Invalid author!', HttpStatus.BAD_REQUEST);
     }
   }
 

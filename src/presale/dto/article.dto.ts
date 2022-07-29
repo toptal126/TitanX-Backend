@@ -1,5 +1,6 @@
 export class BaseArticleDto {
-  author: string;
+  wallet: string;
+  subject?: string;
   markdown: string;
   tags: string;
 }

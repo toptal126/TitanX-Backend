@@ -6,10 +6,13 @@ export type ArticleDocument = Article & Document;
 @Schema()
 export class Article {
   @Prop({ required: true })
-  author: string;
+  wallet: string;
 
   @Prop({ type: SchemaTypes.ObjectId, ref: Article.name, default: null })
   thread: Types.ObjectId;
+
+  @Prop({ required: true })
+  subject: string;
 
   @Prop({ required: true })
   markdown: string;
