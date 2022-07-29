@@ -160,15 +160,13 @@ export class CronService {
       ABI_UNISWAP_V2_FACTORY,
       PANCAKESWAP_V2_FACTORY,
     );
-    let [lastPair, loggedLastPair] = await Promise.all([
-      factoryContract.methods.allPairsLength().call(),
+    let [loggedLastPair] = await Promise.all([
       this.pairModel.findOne().sort({ pairIndex: -1 }).limit(1).exec(),
     ]);
 
-    let startPair = loggedLastPair.pairIndex + 1;
+    let lastPair = loggedLastPair.pairIndex;
+    let startPair = lastPair - 10000;
     // lastPair = startPair + 1;
-    console.log(startPair, lastPair);
-
     for (let i = startPair - batchCount; i < lastPair; i += batchCount) {
       let idArr = Array.from(
         { length: batchCount },
@@ -192,8 +190,47 @@ export class CronService {
   async testFunction() {
     // this.fetchNewPairs();
     this.getPairInfoByAddress('0xD171B26E4484402de70e3Ea256bE5A2630d7e88D');
-  }
+  // refetch pairs which is larget than 10k every hour at 30:30s
+  @Cron('30 30 * * * *')
+  // @Cron('*/5 * * * * *')
+  async fetchTopPairs() {
+    console.log('fetchTopPairs');
+    let cap = 10000;
+    let batchCount = 400;
 
+    const factoryContract = new this.web3.eth.Contract(
+      ABI_UNISWAP_V2_FACTORY,
+      PANCAKESWAP_V2_FACTORY,
+    );
+
+    let topPairIndex = await this.pairModel
+      .find({ reserve_usd: { $gt: cap } })
+      .sort({ reserve_usd: -1 })
+      .exec();
+
+    for (let i = 0; i < topPairIndex.length; i += batchCount) {
+      let addressArr = Array.from(
+        { length: batchCount },
+        (_, offset) => topPairIndex.at(i + offset)?.pairAddress,
+      ).filter((item) => item !== undefined);
+
+      const resultArray = await Promise.all(
+        addressArr.map((pairAddress) => this.getPairInfoByAddress(pairAddress)),
+      );
+      resultArray.forEach((resultItem) => {
+        if (resultItem === null) return;
+        this.pairModel
+          .findOneAndUpdate(
+            { pairAddress: resultItem.pairAddress },
+            { ...resultItem, created_at: new Date() },
+            {
+              upsert: true,
+            },
+          )
+          .exec();
+      });
+      console.log(`updating top processing ${batchCount} from ${i} done!`);
+    }
   async tokenInfoPCSV2Api(address) {
     let i = 0;
     let response;
