@@ -8,8 +8,47 @@ export class PresaleInfo {
   @Prop()
   address: string;
 
+  // 97 bsc-testnet, 56 bsc
+  @Prop({ required: true, default: 97 })
+  chainId: number;
+
   @Prop()
   owner: string;
+
+  @Prop()
+  tokenAddress?: string;
+  @Prop()
+  name?: string;
+  @Prop()
+  symbol?: string;
+  @Prop()
+  decimals?: number;
+
+  @Prop()
+  hardCap?: number;
+
+  @Prop()
+  presaleRate?: number;
+  @Prop()
+  listingRate?: number;
+  @Prop()
+  minContribution?: number;
+  @Prop()
+  maxContribution?: number;
+  @Prop()
+  liquidityPercentage?: number;
+  @Prop()
+  liquidityLockupTime?: number;
+  @Prop()
+  presaleStartTime?: number;
+  @Prop()
+  presaleEndTime?: number;
+
+  @Prop()
+  kycLink?: string;
+
+  @Prop()
+  auditLink?: string;
 
   @Prop()
   external_links?: Array<{
@@ -23,8 +62,8 @@ export class PresaleInfo {
   @Prop()
   update?: string;
 
-  @Prop()
-  completedAt?: Date;
+  @Prop({ default: [] })
+  likes?: Array<string>;
 
   @Prop({ required: true })
   createdAt: Date;

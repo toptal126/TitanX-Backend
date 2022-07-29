@@ -55,12 +55,106 @@ export class CronService {
     return block.timestamp;
   }
 
-  // refetch latest 10000 pairs every hour at 0:30s
-  @Cron('30 0 * * * *')
-  async fetchLast10000() {
-    console.log('every 30 minute');
+  // BNB Price Update
+  @Cron('5 * * * * *')
+  async updateCoinPrice() {
+    let i = 0;
+    while (i < 5) {
+      try {
+        this.logger.debug(
+          `Called when the current second is 5 - ${
+            new Date().getTime() / 1000
+          }`,
+        );
+        const [[latestDBItem], blockNumber] = await Promise.all([
+          this.coinPriceModel.find().sort({ timeStamp: -1 }).limit(1).exec(),
+          this.web3.eth.getBlockNumber(),
+        ]);
 
-    let batchCount = 400;
+        const blockNumberArray: number[] = Array.from(
+          { length: blockNumber - latestDBItem.toBlock },
+          (_, offset) => offset + latestDBItem.toBlock + 1,
+        );
+
+        const timeStampArray = await Promise.all(
+          blockNumberArray.map((blockNumber) =>
+            this.getBlockTimeStampByNumber(blockNumber),
+          ),
+        );
+
+        let block2timeStamp = [];
+        blockNumberArray.forEach((item, index) => {
+          block2timeStamp[`_${item}`] = timeStampArray[index];
+        });
+
+        this.logger.debug(
+          `${blockNumberArray.length}, ${timeStampArray.length}, ${block2timeStamp}`,
+        );
+
+        const logs = await this.web3.eth.getPastLogs({
+          address: WBNB_BUSD_PAIR,
+          fromBlock: latestDBItem.toBlock,
+          toBlock: blockNumber,
+          topics: [LOG_TOPIC_SWAP],
+        });
+
+        let processingTimeStamp = latestDBItem.timeStamp;
+        let fromBlock = latestDBItem.toBlock;
+        logs.forEach((item) => {
+          const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
+          if (logTimeStamp > processingTimeStamp) {
+            const amount0In = parseInt('0x' + item.data.slice(2, 66));
+            const amount0Out = parseInt('0x' + item.data.slice(130, 194));
+            const amount1In = parseInt('0x' + item.data.slice(66, 130));
+            const amount1Out = parseInt('0x' + item.data.slice(194));
+            const usdPrice =
+              (amount1In + amount1Out) / (amount0In + amount0Out);
+            if (usdPrice === 0 || usdPrice === Infinity || usdPrice === null)
+              return;
+
+            processingTimeStamp += 60;
+
+            const updateDBItem = {
+              timeStamp: processingTimeStamp,
+              usdPrice,
+              fromBlock,
+              toBlock: item.blockNumber,
+              updatedAt: new Date().getTime(),
+            };
+            fromBlock = item.blockNumber;
+
+            // this.logger.debug(updateDBItem);
+
+            this.coinPriceModel
+              .findOneAndUpdate(
+                { timeStamp: processingTimeStamp },
+                updateDBItem,
+                {
+                  upsert: true,
+                },
+              )
+              .exec();
+          }
+        });
+        return;
+      } catch (error) {
+        this.changeWeb3RpcUrl();
+        i++;
+      }
+    }
+  }
+
+  // refetch new pairs every 5 minutes
+  @Cron('0 */5 * * * *')
+  async fetchNewPairs() {
+    console.log('fetch New pairs every 5 minute');
+    try {
+      this.removeDoubledCoinHistory();
+    } catch (err) {
+      console.log('Error removeDoubledCoinHistory');
+    }
+
+    let batchCount = 5;
 
     const factoryContract = new this.web3.eth.Contract(
       ABI_UNISWAP_V2_FACTORY,
@@ -91,6 +185,11 @@ export class CronService {
     return lastPair;
   }
 
+  //990878
+  @Cron('0 * * * * *')
+  async testFunction() {
+    // this.fetchNewPairs();
+    this.getPairInfoByAddress('0xD171B26E4484402de70e3Ea256bE5A2630d7e88D');
   // refetch pairs which is larget than 10k every hour at 30:30s
   @Cron('30 30 * * * *')
   // @Cron('*/5 * * * * *')
@@ -132,155 +231,17 @@ export class CronService {
       });
       console.log(`updating top processing ${batchCount} from ${i} done!`);
     }
-  }
-
-  // // BNB Price Update
-  // @Cron('5 * * * * *')
-  // async updateCoinPrice() {
-  //   let i = 0;
-  //   while (i < 5) {
-  //     try {
-  //       this.logger.debug(
-  //         `Called when the current second is 5 - ${
-  //           new Date().getTime() / 1000
-  //         }`,
-  //       );
-  //       const [[latestDBItem], blockNumber] = await Promise.all([
-  //         this.coinPriceModel.find().sort({ timeStamp: -1 }).limit(1).exec(),
-  //         this.web3.eth.getBlockNumber(),
-  //       ]);
-
-  //       const blockNumberArray: number[] = Array.from(
-  //         { length: blockNumber - latestDBItem.toBlock },
-  //         (_, offset) => offset + latestDBItem.toBlock + 1,
-  //       );
-
-  //       const timeStampArray = await Promise.all(
-  //         blockNumberArray.map((blockNumber) =>
-  //           this.getBlockTimeStampByNumber(blockNumber),
-  //         ),
-  //       );
-
-  //       let block2timeStamp = [];
-  //       blockNumberArray.forEach((item, index) => {
-  //         block2timeStamp[`_${item}`] = timeStampArray[index];
-  //       });
-
-  //       this.logger.debug(
-  //         `${blockNumberArray.length}, ${timeStampArray.length}, ${block2timeStamp}`,
-  //       );
-
-  //       const logs = await this.web3.eth.getPastLogs({
-  //         address: WBNB_BUSD_PAIR,
-  //         fromBlock: latestDBItem.toBlock,
-  //         toBlock: blockNumber,
-  //         topics: [LOG_TOPIC_SWAP],
-  //       });
-
-  //       let processingTimeStamp = latestDBItem.timeStamp;
-  //       let fromBlock = latestDBItem.toBlock;
-  //       logs.forEach((item) => {
-  //         const logTimeStamp = block2timeStamp[`_${item.blockNumber}`];
-  //         if (logTimeStamp > processingTimeStamp) {
-  //           const amount0In = parseInt('0x' + item.data.slice(2, 66));
-  //           const amount0Out = parseInt('0x' + item.data.slice(130, 194));
-  //           const amount1In = parseInt('0x' + item.data.slice(66, 130));
-  //           const amount1Out = parseInt('0x' + item.data.slice(194));
-  //           const usdPrice =
-  //             (amount1In + amount1Out) / (amount0In + amount0Out);
-  //           if (usdPrice === 0 || usdPrice === Infinity || usdPrice === null)
-  //             return;
-
-  //           processingTimeStamp += 60;
-
-  //           const updateDBItem = {
-  //             timeStamp: processingTimeStamp,
-  //             usdPrice,
-  //             fromBlock,
-  //             toBlock: item.blockNumber,
-  //             updatedAt: new Date().getTime(),
-  //           };
-  //           fromBlock = item.blockNumber;
-
-  //           // this.logger.debug(updateDBItem);
-
-  //           this.coinPriceModel
-  //             .findOneAndUpdate(
-  //               { timeStamp: processingTimeStamp },
-  //               updateDBItem,
-  //               {
-  //                 upsert: true,
-  //               },
-  //             )
-  //             .exec();
-  //         }
-  //       });
-  //       return;
-  //     } catch (error) {
-  //       this.changeWeb3RpcUrl();
-  //       i++;
-  //     }
-  //   }
-  // }
-
-  // // refetch new pairs every 5 minutes
-  // @Cron('0 */5 * * * *')
-  // async fetchNewPairs() {
-  //   console.log('fetch New pairs every 5 minute');
-  //   try {
-  //     this.removeDoubledCoinHistory();
-  //   } catch (err) {
-  //     console.log('Error removeDoubledCoinHistory');
-  //   }
-
-  //   let batchCount = 5;
-
-  //   const factoryContract = new this.web3.eth.Contract(
-  //     ABI_UNISWAP_V2_FACTORY,
-  //     PANCAKESWAP_V2_FACTORY,
-  //   );
-  //   let [lastPair, loggedLastPair] = await Promise.all([
-  //     factoryContract.methods.allPairsLength().call(),
-  //     this.pairModel.findOne().sort({ pairIndex: -1 }).limit(1).exec(),
-  //   ]);
-
-  //   let startPair = loggedLastPair.pairIndex + 1;
-  //   // lastPair = startPair + 1;
-  //   console.log(startPair, lastPair);
-
-  //   for (let i = startPair - batchCount; i < lastPair; i += batchCount) {
-  //     let idArr = Array.from(
-  //       { length: batchCount },
-  //       (_, offset) => i + offset,
-  //     ).filter((item) => item < lastPair);
-
-  //     // const pairInfoArr =
-  //     await Promise.all(
-  //       idArr.map((pairIndex) =>
-  //         this.getPairInfobyIndex(pairIndex, factoryContract),
-  //       ),
-  //     );
-  //     // console.log(pairInfoArr);
-  //   }
-
-  //   return lastPair;
-  // }
-
-  // //990878
-  // @Cron('*/10 * * * * *')
-  // async testFunction() {
-  //   // this.fetchNewPairs();
-  // }
-
   async tokenInfoPCSV2Api(address) {
     let i = 0;
+    let response;
     while (i < 5)
       try {
-        const response = await axios.get(
+        response = await axios.get(
           `https://api.pancakeswap.info/api/v2/tokens/${address}`,
         );
         return response.data;
       } catch (error) {
+        if (error.response.status == 404) return;
         i++;
       }
 
@@ -298,7 +259,7 @@ export class CronService {
 
         const result = await this.getPairInfoByAddress(pairAddress);
         if (result) {
-          let updateDBItem = { ...result, pairIndex };
+          let updateDBItem = { ...result, pairIndex, createdAt: new Date() };
           this.pairModel
             .findOneAndUpdate({ pairIndex }, updateDBItem, {
               upsert: true,
@@ -424,10 +385,10 @@ export class CronService {
           pairAddress,
           token0,
           token1,
-          token0Name: token0Name,
-          token1Name: token1Name,
-          token0Symbol: token0Symbol,
-          token1Symbol: token1Symbol,
+          token0Name,
+          token1Name,
+          token0Symbol,
+          token1Symbol,
           token0Decimals,
           token1Decimals,
           reserve0: reserves._reserve0,
@@ -449,7 +410,7 @@ export class CronService {
   }
 
   public async removeDoubledCoinHistory() {
-    const doubledPairs = await this.pairModel
+    const doubledPairs = await this.coinPriceModel
       .aggregate([
         {
           $group: {

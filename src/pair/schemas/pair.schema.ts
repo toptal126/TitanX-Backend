@@ -8,10 +8,10 @@ export class Pair {
   @Prop({ required: true, default: 0 })
   dexId?: number;
 
-  @Prop({ required: true, default: -1 })
+  @Prop({ required: true, default: -1, index: true })
   pairIndex?: number;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   pairAddress: string;
 
   @Prop({ required: true })

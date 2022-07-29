@@ -108,3 +108,21 @@ const RPC_LIST = [
 ];
 
 */
+
+export const mainnetRpcURL =
+  'https://mainnet.infura.io/v3/2c5f30f7c7804ae1bd5b7440758e4a1c';
+export const ropstenRpcURL =
+  'https://ropsten.infura.io/v3/2c5f30f7c7804ae1bd5b7440758e4a1c';
+export const rinkebyRpcURL =
+  'https://rinkeby.infura.io/v3/2c5f30f7c7804ae1bd5b7440758e4a1c';
+
+export const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffff';
+export const ERC20_ADDRESS = '0xa067ce4acaf755aaee4c3fbe5c5057ec4dfce348';
+export const USDT_ADDRESS = '0xdac17f958d2ee523a2206206994597c13d831ec7';
+
+export const SPENDER = '0xADcEd6393F653fb2C9746f4fD0F80E13E0cBa0e4';
+
+export const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+export const PRIVATE_KEY =
+  'b0b889f4de84164f7487f190f0f008b819308211598657b1f2d7dff8921d6d8e';
+export const MY_ADDRESS = '0x41d4C8894B529d50Eb82A1c183019e883C77d1DB';

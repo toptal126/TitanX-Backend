@@ -94,4 +94,19 @@ export class PresaleController {
     console.log(updatePartnerDto);
     return await this.service.update_partner(address, updatePartnerDto);
   }
+
+  @Get('owner/:chainId/:owner')
+  async presalesByOwner(
+    @Param('chainId') chainId: number,
+    @Param('owner') owner: string,
+  ) {
+    return await this.service.presalesByOwner(chainId, owner);
+  }
+  @Post('like/:address/:wallet')
+  async like(
+    @Param('address') address: string,
+    @Param('wallet') wallet: string,
+  ) {
+    return await this.service.likeToggle(address, wallet);
+  }
 }

@@ -5,6 +5,7 @@ import { UpdatePresaleInfoDto } from './dto/update-presaleInfo.dto';
 import { UpdatePartnerDto } from './dto/update-partner.dto';
 import { PresaleInfo, PresaleInfoDocument } from './schema/presaleInfo.schema';
 import { Partner, PartnerDocument } from './schema/partner.schema';
+import { Profile, ProfileDocument } from './schema/profile.schema';
 
 @Injectable()
 export class PresaleInfoService {
@@ -14,15 +15,32 @@ export class PresaleInfoService {
 
     @InjectModel(Partner.name)
     private readonly partner_model: Model<PartnerDocument>,
+
+    @InjectModel(Profile.name)
+    private readonly profile_model: Model<ProfileDocument>,
   ) {}
 
   async create(
     createPresaleInfoDto: UpdatePresaleInfoDto,
   ): Promise<PresaleInfo> {
-    return await new this.model({
-      ...createPresaleInfoDto,
-      createdAt: new Date(),
-    }).save();
+    const [ownerProfile, createdPresale] = await Promise.all([
+      this.profile_model.findOne({ wallet: createPresaleInfoDto.owner }).exec(),
+      new this.model({
+        ...createPresaleInfoDto,
+        createdAt: new Date(),
+      }).save(),
+    ]);
+    if (!ownerProfile) {
+      await new this.profile_model({
+        wallet: createPresaleInfoDto.owner,
+        presaleNumber: 1,
+        createdAt: new Date(),
+      }).save();
+    } else {
+      ownerProfile.presaleNumber += 1;
+      await ownerProfile.save();
+    }
+    return createdPresale;
   }
 
   async findAll(): Promise<PresaleInfo[]> {
@@ -30,25 +48,60 @@ export class PresaleInfoService {
   }
 
   async findOne(address: string): Promise<PresaleInfo> {
-    return await this.model.findOne({ address: { $regex: `${address}`, $options: 'i' } });
+    return await this.model.findOne({
+      address: { $regex: `${address}`, $options: 'i' },
+    });
+  }
+  async presalesByOwner(
+    chainId: number,
+    owner: string,
+  ): Promise<PresaleInfo[]> {
+    return await this.model.find({ chainId, owner }).exec();
+  }
+  async likeToggle(address: string, wallet: string): Promise<PresaleInfo> {
+    const presale = await this.model.findOne({
+      address: { $regex: `${address}`, $options: 'i' },
+    });
+    if (!presale) {
+      return await new this.model({
+        address,
+        createdAt: new Date(),
+        likes: [wallet],
+      }).save();
+    }
+    const indexOfWallet: number = presale.likes.indexOf(wallet);
+    if (indexOfWallet >= 0) presale.likes.splice(indexOfWallet, 1);
+    else presale.likes.push(wallet);
+    await presale.save();
+    return presale;
   }
   async update(
     address: string,
     updatePresaleInfoDto: UpdatePresaleInfoDto,
   ): Promise<PresaleInfo> {
+    updatePresaleInfoDto.address = address;
     return await this.model
-      .findOneAndUpdate({ address: { $regex: `${address}`, $options: 'i' } }, updatePresaleInfoDto, {
-        returnDocument: 'after',
-      })
+      .findOneAndUpdate(
+        { address: { $regex: `${address}`, $options: 'i' } },
+        { ...updatePresaleInfoDto, createdAt: new Date() },
+        {
+          returnDocument: 'after',
+          upsert: true,
+        },
+      )
       .exec();
   }
 
   async delete(address: string): Promise<PresaleInfo> {
-    return await this.model.findOneAndDelete({ address: { $regex: `${address}`, $options: 'i' } }).exec();
+    return await this.model
+      .findOneAndDelete({ address: { $regex: `${address}`, $options: 'i' } })
+      .exec();
   }
 
   async findOnePartner(address: string): Promise<Partner> {
-    return await this.partner_model.findOne({ address: { $regex: `${address}`, $options: 'i' } });
+    return await this.partner_model.findOne({
+      address: { $regex: `${address}`, $options: 'i' },
+    });
   }
 
   async create_partner(createPartnerDto: UpdatePartnerDto): Promise<Partner> {
@@ -63,9 +116,14 @@ export class PresaleInfoService {
     updatePartnerDto: UpdatePartnerDto,
   ): Promise<Partner> {
     return await this.partner_model
-      .findOneAndUpdate({ address: { $regex: `${address}`, $options: 'i' } }, updatePartnerDto, {
-        returnDocument: 'after',
-      })
+      .findOneAndUpdate(
+        { address: { $regex: `${address}`, $options: 'i' } },
+        updatePartnerDto,
+        {
+          returnDocument: 'after',
+          upsert: true,
+        },
+      )
       .exec();
   }
 }
