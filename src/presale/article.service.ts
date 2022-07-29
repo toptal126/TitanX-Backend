@@ -18,11 +18,33 @@ export class ArticleService {
   async findAll(): Promise<Article[]> {
     return await this.model.find({ thread: undefined }).exec();
   }
-  async findOne(id: string): Promise<Article> {
+  async findOne(id: string): Promise<ArticleDocument> {
     return await this.model.findById(id).exec();
   }
+  async findReplies(id: string): Promise<ArticleDocument[]> {
+    return await this.model.find({ thread: id }).exec();
+  }
+  // async getOneByLink(link: string): Promise<Article> {
+  //   return await this.model.findOne({ link }).exec();
+  // }
   async articlesByAuthor(wallet: string): Promise<ArticleDocument[]> {
     return await this.model.find({ wallet }).exec();
+  }
+  async authorsByArticle(id: string): Promise<ProfileDocument[]> {
+    const replies = await this.model.find({ thread: id }).exec();
+    if (!replies) return [];
+    const wallets = replies.map((reply) => reply.wallet);
+    const profiles = this.profileModel
+      .find({ wallet: { $in: wallets } })
+      .select({
+        username: 1,
+        bio: 1,
+        avatarLink: 1,
+        followers: 1,
+        wallet: 1,
+      })
+      .exec();
+    return profiles;
   }
 
   async create(createArticleDto: CreateArticleDto): Promise<Article> {
