@@ -27,17 +27,6 @@ export class Profile {
     countryname: string;
   };
 
-  @Prop({ type: Object })
-  avatarInfo:
-    | {
-        tokenId: number;
-        contract: string;
-        name: string;
-        symbol: string;
-        description: string;
-      }
-    | undefined; // Available for only NFT Avatar
-
   @Prop()
   bannerLink: string;
 

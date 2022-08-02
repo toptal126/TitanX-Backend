@@ -50,7 +50,29 @@ export class ProfileService {
       existingObj.avatarLink = updateProfileDto.avatarLink;
       existingObj.bannerLink = updateProfileDto.bannerLink;
       existingObj.verified = true;
+
+      if (existingObj.avatarLink) {
+        const assets = [].concat.apply(
+          [],
+          existingObj.nftAssets.map((item) => item.nftData),
+        );
+        if (
+          !assets.find(
+            (item) => item.externalData.image === existingObj.avatarLink,
+          )
+        ) {
+          throw new HttpException(
+            'Trying to invalid NFT as profile image!',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
       await existingObj.save();
+    } else {
+      throw new HttpException(
+        'Not found selected Profile!',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     return existingObj;
   }
