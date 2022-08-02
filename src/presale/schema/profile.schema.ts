@@ -70,10 +70,19 @@ export class Profile {
     quoteRate: number;
     balance: number;
     contract: string;
-    nftDate: Array<{
+    nftData: Array<{
       tokenId: number;
       externalData: any;
     }>;
+  }>;
+
+  @Prop({ required: true, default: 0 })
+  exp: 0;
+
+  @Prop({ required: true, default: [] })
+  expLog: Array<{
+    description: string;
+    point: number;
   }>;
 
   @Prop({ required: true })
