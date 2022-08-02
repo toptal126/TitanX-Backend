@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import axios from 'axios';
 import {
   CreateProfileDto,
+  UpdateClientLocationDto,
   UpdateProfileDto,
   VerifyProfileDto,
 } from './dto/profile.dto';
@@ -52,6 +53,22 @@ export class ProfileService {
       await existingObj.save();
     }
     return existingObj;
+  }
+  async updateClientInfoByWallet(
+    wallet: string,
+    updateClientInfo: UpdateClientLocationDto,
+  ) {
+    const existingObj = await this.findOneByWallet(wallet);
+
+    const recovered = this.web3.eth.accounts.recover(
+      existingObj.uuid,
+      updateClientInfo.signatureHash,
+    );
+    if (recovered === existingObj.wallet) {
+      existingObj.clientLocation = updateClientInfo.clientInfo;
+      await existingObj.save();
+    }
+    return true;
   }
   async findOneByWallet(wallet: string): Promise<ProfileDocument> {
     return await this.model.findOne({ wallet }).exec();

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import {
   CreateProfileDto,
+  UpdateClientLocationDto,
   UpdateProfileDto,
   VerifyProfileDto,
 } from './dto/profile.dto';
@@ -35,6 +36,16 @@ export class ProfileController {
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
     return await this.service.updateOneByWallet(wallet, updateProfileDto);
+  }
+  @Put('clientinfo/:wallet')
+  async updateClientInfoByWallet(
+    @Param('wallet') wallet: string,
+    @Body() updateProfileDto: UpdateClientLocationDto,
+  ) {
+    return await this.service.updateClientInfoByWallet(
+      wallet,
+      updateProfileDto,
+    );
   }
 
   @Get('nonce/:wallet')

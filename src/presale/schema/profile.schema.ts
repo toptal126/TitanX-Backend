@@ -19,6 +19,25 @@ export class Profile {
 
   @Prop()
   avatarLink: string;
+
+  @Prop({ type: Object })
+  clientLocation: {
+    ip: string;
+    countrycode: string;
+    countryname: string;
+  };
+
+  @Prop({ type: Object })
+  avatarInfo:
+    | {
+        tokenId: number;
+        contract: string;
+        name: string;
+        symbol: string;
+        description: string;
+      }
+    | undefined; // Available for only NFT Avatar
+
   @Prop()
   bannerLink: string;
 

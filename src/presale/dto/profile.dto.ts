@@ -13,3 +13,8 @@ export class UpdateProfileDto extends BaseProfileDto {
 export class VerifyProfileDto extends BaseProfileDto {
   signatureHash: string;
 }
+
+export class UpdateClientLocationDto extends BaseProfileDto {
+  clientInfo: any;
+  signatureHash: string;
+}
