@@ -35,7 +35,7 @@ export class ArticleController {
     if (!article) return {};
     const [replies, author] = await Promise.all([
       this.service.findReplies(article._id),
-      this.profileSerivce.findAutherByWallet(article.wallet),
+      this.profileSerivce.findAuthorByWallet(article.wallet),
     ]);
     return { post: article, replies, author };
   }

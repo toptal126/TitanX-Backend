@@ -74,4 +74,9 @@ export class ProfileController {
   async followingData(@Param('username') username: string) {
     return await this.service.followingData(username);
   }
+
+  @Get('assets/:wallet')
+  async fetchAssetsByWallet(@Param('wallet') wallet: string) {
+    return await this.service.fetchAssetsByWallet(wallet);
+  }
 }
