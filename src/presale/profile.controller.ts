@@ -55,7 +55,7 @@ export class ProfileController {
 
   @Get('me/:wallet')
   async getOneByWallet(@Param('wallet') wallet: string) {
-    return await this.service.findOneByWallet(wallet);
+    return await this.service.findProfileByWallet(wallet);
   }
   @Get('u/:username')
   async getOneByUsername(@Param('username') username: string) {
