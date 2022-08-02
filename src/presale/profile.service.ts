@@ -73,12 +73,61 @@ export class ProfileService {
     return await this.model.findOne({ username }).exec();
   }
   async fetchAssetsByWallet(wallet: string) {
-    const data = await axios
-      .get(
-        `https://api.covalenthq.com/v1/56/address/${wallet}/balances_v2/?quote-currency=USD&format=JSON&nft=true&no-nft-fetch=false&key=${COVALENT_KEY}`,
-      )
-      .then((res) => res.data);
-    console.log(data);
+    let data;
+    try {
+      data = await axios
+        .get(
+          `https://api.covalenthq.com/v1/56/address/${wallet}/balances_v2/?quote-currency=USD&format=JSON&nft=true&no-nft-fetch=false&key=${COVALENT_KEY}`,
+        )
+        .then((res) => res.data);
+      data = data.data;
+      if (data.items) {
+        const profile = await this.findOneByWallet(wallet);
+        const balanceQuote = {
+          coinQuote: 0,
+          tokenQuote: 0,
+          totalQuote: 0,
+        };
+        data.items.forEach((item) => {
+          if (item.type === 'dust') return;
+          if (item.nft_data && item.supports_erc?.includes('erc721')) {
+            // if item is nft
+            profile.nftAssets.push({
+              name: item.contract_name,
+              symbol: item.contract_ticker_symbol,
+              quote: item.quote * 1,
+              quoteRate: item.quote_rate * 1,
+              balance: item.balance,
+              contract: item.contract_address,
+              nftData: item.nft_data?.map((nftData) => ({
+                tokenId: nftData.token_id,
+                externalData: nftData.external_data,
+              })),
+            });
+            balanceQuote.tokenQuote += item.quote * 1;
+          } else if (item.supports_erc?.includes('erc20')) {
+            //if this item is token
+            profile.tokenAssets.push({
+              name: item.contract_name,
+              symbol: item.contract_ticker_symbol,
+              quote: item.quote,
+              quoteRate: item.quoteRate,
+              balance: item.balance,
+              contract: item.contract_address,
+              decimals: item.contract_decimals,
+            });
+            balanceQuote.tokenQuote += item.quote * 1;
+          } else if (item.supports_erc === null)
+            balanceQuote.coinQuote += item.quote * 1;
+        });
+        balanceQuote.totalQuote =
+          balanceQuote.coinQuote + balanceQuote.tokenQuote;
+        profile.balanceQuote = balanceQuote;
+        await profile.save();
+      }
+    } catch (error) {
+      console.log(error);
+    }
     return data;
   }
   async create(createProfileDto: CreateProfileDto): Promise<Profile> {
