@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import axios from 'axios';
 import {
   CreateProfileDto,
   UpdateProfileDto,
@@ -9,6 +10,9 @@ import {
 import { Profile, ProfileDocument } from './schema/profile.schema';
 import { v4 as uuidv4 } from 'uuid';
 import { PresaleInfo, PresaleInfoDocument } from './schema/presaleInfo.schema';
+
+require('dotenv').config();
+const COVALENT_KEY = process.env.COVALENT_KEY;
 
 @Injectable()
 export class ProfileService {
@@ -52,7 +56,7 @@ export class ProfileService {
   async findOneByWallet(wallet: string): Promise<ProfileDocument> {
     return await this.model.findOne({ wallet }).exec();
   }
-  async findAutherByWallet(wallet: string): Promise<ProfileDocument> {
+  async findAuthorByWallet(wallet: string): Promise<ProfileDocument> {
     return await this.model
       .findOne({ wallet })
       .select({
@@ -68,6 +72,15 @@ export class ProfileService {
   async findOneByUsername(username: string): Promise<ProfileDocument> {
     return await this.model.findOne({ username }).exec();
   }
+  async fetchAssetsByWallet(wallet: string) {
+    const data = await axios
+      .get(
+        `https://api.covalenthq.com/v1/56/address/${wallet}/balances_v2/?quote-currency=USD&format=JSON&nft=true&no-nft-fetch=false&key=${COVALENT_KEY}`,
+      )
+      .then((res) => res.data);
+    console.log(data);
+    return data;
+  }
   async create(createProfileDto: CreateProfileDto): Promise<Profile> {
     try {
       const checksummedWallet = this.web3.utils.toChecksumAddress(
@@ -76,7 +89,7 @@ export class ProfileService {
       const presaleNumber = await this.presaleModel
         .find({ owner: checksummedWallet })
         .count();
-      return await this.model.create({
+      const createdOne = await this.model.create({
         ...createProfileDto,
         presaleNumber,
         username: createProfileDto.wallet,
@@ -84,6 +97,8 @@ export class ProfileService {
         wallet: checksummedWallet,
         createdAt: new Date(),
       });
+      this.fetchAssetsByWallet(createdOne.wallet);
+      return createdOne;
     } catch (error) {
       if (error.code === 11000)
         throw new HttpException(
