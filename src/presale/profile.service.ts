@@ -50,7 +50,29 @@ export class ProfileService {
       existingObj.avatarLink = updateProfileDto.avatarLink;
       existingObj.bannerLink = updateProfileDto.bannerLink;
       existingObj.verified = true;
+
+      if (existingObj.avatarLink) {
+        const assets = [].concat.apply(
+          [],
+          existingObj.nftAssets.map((item) => item.nftData),
+        );
+        if (
+          !assets.find(
+            (item) => item.externalData.image === existingObj.avatarLink,
+          )
+        ) {
+          throw new HttpException(
+            'Trying to invalid NFT as profile image!',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
       await existingObj.save();
+    } else {
+      throw new HttpException(
+        'Not found selected Profile!',
+        HttpStatus.BAD_REQUEST,
+      );
     }
     return existingObj;
   }
@@ -73,6 +95,24 @@ export class ProfileService {
   async findOneByWallet(wallet: string): Promise<ProfileDocument> {
     return await this.model.findOne({ wallet }).exec();
   }
+  async findProfileByWallet(wallet: string): Promise<ProfileDocument> {
+    const profile = await this.findOneByWallet(wallet);
+    if (profile) {
+      profile.nftAssets = [].concat.apply(
+        [],
+        profile.nftAssets.map((item) =>
+          item.nftData.map((token) => {
+            return {
+              ...token,
+              contract_name: item.name,
+              contract_symbol: item.symbol,
+            };
+          }),
+        ),
+      );
+    }
+    return profile;
+  }
   async findAuthorByWallet(wallet: string): Promise<ProfileDocument> {
     return await this.model
       .findOne({ wallet })
@@ -89,7 +129,7 @@ export class ProfileService {
   async findOneByUsername(username: string): Promise<ProfileDocument> {
     return await this.model.findOne({ username }).exec();
   }
-  async fetchAssetsByWallet(wallet: string) {
+  async updateAssetsByWallet(wallet: string) {
     let data;
     try {
       data = await axios
@@ -100,6 +140,8 @@ export class ProfileService {
       data = data.data;
       if (data.items) {
         const profile = await this.findOneByWallet(wallet);
+        if (!profile)
+        return null;
         const balanceQuote = {
           coinQuote: 0,
           tokenQuote: 0,
@@ -141,11 +183,25 @@ export class ProfileService {
           balanceQuote.coinQuote + balanceQuote.tokenQuote;
         profile.balanceQuote = balanceQuote;
         await profile.save();
+        return [].concat.apply(
+          [],
+          profile.nftAssets.map((item) => item.nftData),
+        );
       }
     } catch (error) {
       console.log(error);
     }
     return data;
+  }
+
+  async fetchAssetsByWallet(wallet: string) {
+    const profile = await this.findOneByWallet(wallet);
+    if (profile)
+      return [].concat.apply(
+        [],
+        profile.nftAssets.map((item) => item.nftData),
+      );
+    else return [];
   }
   async create(createProfileDto: CreateProfileDto): Promise<Profile> {
     try {
@@ -163,7 +219,7 @@ export class ProfileService {
         wallet: checksummedWallet,
         createdAt: new Date(),
       });
-      this.fetchAssetsByWallet(createdOne.wallet);
+      this.updateAssetsByWallet(createdOne.wallet);
       return createdOne;
     } catch (error) {
       if (error.code === 11000)

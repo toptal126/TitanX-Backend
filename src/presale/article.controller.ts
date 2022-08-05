@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 
 import { ArticleService } from './article.service';
-import { CreateArticleDto } from './dto/article.dto';
+import { CreateArticleDto, DraftArticleDto } from './dto/article.dto';
 import { ProfileService } from './profile.service';
 
 @Controller('articles')
@@ -44,6 +44,17 @@ export class ArticleController {
   async articlesByAuthor(@Param('wallet') wallet: string) {
     return await this.service.articlesByAuthor(wallet);
   }
+  @Get('draft/:wallet')
+  async draftByAuthor(@Param('wallet') wallet: string) {
+    return await this.service.draftByAuthor(wallet);
+  }
+
+  @Put('draft')
+  async updateDraft(@Body() draftArticleDto: DraftArticleDto) {
+    // console.log(wallet, draftArticleDto);
+    return await this.service.updateDraft(draftArticleDto);
+  }
+
   @Get('authors/:id')
   async authorsByArticle(@Param('id') id: string) {
     return await this.service.authorsByArticle(id);

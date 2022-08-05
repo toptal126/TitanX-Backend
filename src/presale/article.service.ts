@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Profile, ProfileDocument } from './schema/profile.schema';
 import { Article, ArticleDocument } from './schema/article.schema';
-import { CreateArticleDto } from './dto/article.dto';
+import { CreateArticleDto, DraftArticleDto } from './dto/article.dto';
 
 @Injectable()
 export class ArticleService {
@@ -28,7 +28,24 @@ export class ArticleService {
   //   return await this.model.findOne({ link }).exec();
   // }
   async articlesByAuthor(wallet: string): Promise<ArticleDocument[]> {
-    return await this.model.find({ wallet }).exec();
+    return await this.model.find({ wallet, isDraft: false }).exec();
+  }
+
+  async draftByAuthor(wallet: string): Promise<ArticleDocument> {
+    return await this.model.findOne({ wallet, isDraft: true }).exec();
+  }
+
+  async updateDraft(
+    draftArticleDto: DraftArticleDto,
+  ): Promise<ArticleDocument> {
+    return await this.model.findByIdAndUpdate(
+      draftArticleDto._id,
+      { ...draftArticleDto, createdAt: new Date(), isDraft: true },
+      {
+        returnDocument: 'after',
+        upsert: true,
+      },
+    );
   }
   async authorsByArticle(id: string): Promise<ProfileDocument[]> {
     const replies = await this.model.find({ thread: id }).exec();
