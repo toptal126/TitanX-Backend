@@ -14,10 +14,10 @@ export class Article {
   @Prop()
   subject: string;
 
-  @Prop({ required: true })
+  @Prop()
   link: string;
 
-  @Prop({ required: true })
+  @Prop()
   markdown: string;
 
   @Prop({ default: false })

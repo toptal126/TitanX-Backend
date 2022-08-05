@@ -3,17 +3,25 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Profile, ProfileDocument } from './schema/profile.schema';
 import { Article, ArticleDocument } from './schema/article.schema';
-import { CreateArticleDto, DraftArticleDto } from './dto/article.dto';
+import {
+  CreateArticleDto,
+  DraftArticleDto,
+  PublishArticleDto,
+} from './dto/article.dto';
 
 @Injectable()
 export class ArticleService {
+  private web3;
   constructor(
     @InjectModel(Article.name)
     private readonly model: Model<ArticleDocument>,
 
     @InjectModel(Profile.name)
     private readonly profileModel: Model<ProfileDocument>,
-  ) {}
+  ) {
+    const Web3 = require('web3');
+    this.web3 = new Web3();
+  }
 
   async findAll(): Promise<Article[]> {
     return await this.model.find({ thread: undefined }).exec();
@@ -38,14 +46,32 @@ export class ArticleService {
   async updateDraft(
     draftArticleDto: DraftArticleDto,
   ): Promise<ArticleDocument> {
-    return await this.model.findByIdAndUpdate(
-      draftArticleDto._id,
-      { ...draftArticleDto, createdAt: new Date(), isDraft: true },
-      {
-        returnDocument: 'after',
-        upsert: true,
-      },
-    );
+    const tempId = draftArticleDto._id;
+    delete draftArticleDto._id;
+
+    let article;
+    if (!tempId) {
+      article = await this.model.create({
+        ...draftArticleDto,
+        createdAt: new Date(),
+        isDraft: true,
+      });
+    } else
+      article = await this.model.findOneAndUpdate(
+        { _id: tempId },
+        { ...draftArticleDto, createdAt: new Date(), isDraft: true },
+        {
+          returnDocument: 'after',
+          upsert: true,
+        },
+      );
+
+    article.link = `${article.subject
+      .toLowerCase()
+      .replace(/[^a-zA-Z ]/g, '')
+      .replaceAll(' ', '-')}-${article._id}`;
+    article.save();
+    return article;
   }
   async authorsByArticle(id: string): Promise<ProfileDocument[]> {
     const replies = await this.model.find({ thread: id }).exec();
@@ -135,5 +161,27 @@ export class ArticleService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+  async publish(
+    id: string,
+    publishArticleDto: PublishArticleDto,
+  ): Promise<Article> {
+    const article = await this.model.findByIdAndUpdate(id);
+
+    if (!article)
+      throw new HttpException("Can't find the Post!", HttpStatus.BAD_REQUEST);
+
+    const recovered = this.web3.eth.accounts.recover(
+      article.link,
+      publishArticleDto.signatureHash,
+    );
+    if (recovered === article.wallet) {
+      article.isDraft = false;
+      await article.save();
+      return article;
+    } else {
+      throw new HttpException('Invalid Signature!', HttpStatus.BAD_REQUEST);
+    }
+    return article;
   }
 }
