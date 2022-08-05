@@ -140,8 +140,7 @@ export class ProfileService {
       data = data.data;
       if (data.items) {
         const profile = await this.findOneByWallet(wallet);
-        if (!profile)
-        return null;
+        if (!profile) return null;
         const balanceQuote = {
           coinQuote: 0,
           tokenQuote: 0,

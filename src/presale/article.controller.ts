@@ -9,7 +9,11 @@ import {
 } from '@nestjs/common';
 
 import { ArticleService } from './article.service';
-import { CreateArticleDto, DraftArticleDto } from './dto/article.dto';
+import {
+  CreateArticleDto,
+  DraftArticleDto,
+  PublishArticleDto,
+} from './dto/article.dto';
 import { ProfileService } from './profile.service';
 
 @Controller('articles')
@@ -68,5 +72,13 @@ export class ArticleController {
   @Post('like/:id/:wallet')
   async like(@Param('id') id: string, @Param('wallet') wallet: string) {
     return await this.service.likeToggle(id, wallet);
+  }
+
+  @Put('publish/:id')
+  async publish(
+    @Param('id') id: string,
+    @Body() publishArticleDto: PublishArticleDto,
+  ) {
+    return await this.service.publish(id, publishArticleDto);
   }
 }

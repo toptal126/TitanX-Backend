@@ -7,9 +7,13 @@ export class BaseArticleDto {
 
 export class CreateArticleDto extends BaseArticleDto {
   thread: string;
-  signature: string;
+  CreateArticleDto: string;
 }
 
 export class DraftArticleDto extends BaseArticleDto {
   _id: string;
+}
+
+export class PublishArticleDto extends BaseArticleDto {
+  signatureHash: string;
 }
