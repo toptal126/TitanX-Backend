@@ -35,6 +35,9 @@ export class Article {
   @Prop({ required: true })
   createdAt: Date;
 
+  @Prop({ required: true, default: false })
+  isDraft: boolean;
+
   @Prop()
   deletedAt?: Date;
 }

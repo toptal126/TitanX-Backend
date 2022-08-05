@@ -90,4 +90,9 @@ export class ProfileController {
   async fetchAssetsByWallet(@Param('wallet') wallet: string) {
     return await this.service.fetchAssetsByWallet(wallet);
   }
+
+  @Put('assets/:wallet')
+  async updateAssetsByWallet(@Param('wallet') wallet: string) {
+    return await this.service.updateAssetsByWallet(wallet);
+  }
 }

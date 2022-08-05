@@ -9,3 +9,7 @@ export class CreateArticleDto extends BaseArticleDto {
   thread: string;
   signature: string;
 }
+
+export class DraftArticleDto extends BaseArticleDto {
+  _id: string;
+}
