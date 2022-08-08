@@ -20,6 +20,9 @@ export class Article {
   @Prop()
   markdown: string;
 
+  @Prop()
+  type: string;
+
   @Prop({ default: false })
   featured: boolean;
 

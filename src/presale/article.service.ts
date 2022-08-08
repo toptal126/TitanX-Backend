@@ -43,6 +43,50 @@ export class ArticleService {
     return await this.model.findOne({ wallet, isDraft: true }).exec();
   }
 
+  async articlesByType(
+    type: string,
+    wallet: string,
+  ): Promise<{ articles: ArticleDocument[]; authors: Profile[] }> {
+    if (type === 'activity') {
+      const profile = await this.profileModel.findOne({ wallet }).exec();
+      let articles = [],
+        authors = [];
+      if (profile)
+        [articles, authors] = await Promise.all([
+          this.model
+            .find({
+              // type,
+              isDraft: false,
+              thread: null,
+              wallet: { $in: profile.following },
+            })
+            .sort({ _id: -1 })
+            .limit(20)
+            .exec(),
+          this.profileModel.find({ wallet: { $in: profile.following } }).exec(),
+        ]);
+      return { articles, authors };
+    } else if (type === 'featured')
+      return {
+        articles: await this.model
+          .find({ featured: true, isDraft: false, thread: undefined })
+          .sort({ _id: -1 })
+          .limit(20)
+          .exec(),
+        authors: [],
+      };
+    else if (type === 'all')
+      return {
+        articles: await this.model
+          .find({ isDraft: false, thread: undefined })
+          .sort({ _id: -1 })
+          .limit(20)
+          .exec(),
+        authors: [],
+      };
+    return { articles: [], authors: [] };
+  }
+
   async updateDraft(
     draftArticleDto: DraftArticleDto,
   ): Promise<ArticleDocument> {
@@ -166,7 +210,7 @@ export class ArticleService {
     id: string,
     publishArticleDto: PublishArticleDto,
   ): Promise<Article> {
-    const article = await this.model.findByIdAndUpdate(id);
+    const article = await this.model.findById(id).exec();
 
     if (!article)
       throw new HttpException("Can't find the Post!", HttpStatus.BAD_REQUEST);
@@ -175,6 +219,7 @@ export class ArticleService {
       article.link,
       publishArticleDto.signatureHash,
     );
+    console.log(recovered);
     if (recovered === article.wallet) {
       article.isDraft = false;
       await article.save();
