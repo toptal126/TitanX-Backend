@@ -1,6 +1,7 @@
 export class BasePresaleInfoDto {
   address: string;
   owner: string;
+  tokenOwner: string;
   tokenAddress?: string;
   name?: string;
   symbol?: string;
