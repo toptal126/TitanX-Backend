@@ -178,6 +178,11 @@ export class ArticleService {
     if (recovered === article.wallet) {
       article.isDraft = false;
       await article.save();
+      const author = await this.profileModel
+        .findOne({ wallet: article.wallet })
+        .exec();
+      author.articleNumber += 1;
+      author.save();
       return article;
     } else {
       throw new HttpException('Invalid Signature!', HttpStatus.BAD_REQUEST);
