@@ -91,7 +91,6 @@ export class PresaleController {
     @Param('address') address: string,
     @Body() updatePartnerDto: UpdatePartnerDto,
   ) {
-    console.log(updatePartnerDto);
     return await this.service.update_partner(address, updatePartnerDto);
   }
 

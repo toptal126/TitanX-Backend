@@ -53,6 +53,11 @@ export class ArticleController {
     return await this.service.draftByAuthor(wallet);
   }
 
+  @Get('type/:type/:wallet')
+  async articlesByType(@Param('type') type: string,@Param('wallet') wallet: string) {
+    return await this.service.articlesByType(type,wallet);
+  }
+
   @Put('draft')
   async updateDraft(@Body() draftArticleDto: DraftArticleDto) {
     // console.log(wallet, draftArticleDto);

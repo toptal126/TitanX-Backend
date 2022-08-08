@@ -16,6 +16,9 @@ export class PresaleInfo {
   owner: string;
 
   @Prop()
+  tokenOwner: string;
+
+  @Prop()
   tokenAddress?: string;
   @Prop()
   name?: string;
