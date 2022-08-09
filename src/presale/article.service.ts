@@ -47,10 +47,10 @@ export class ArticleService {
     type: string,
     wallet: string,
   ): Promise<{ articles: ArticleDocument[]; authors: Profile[] }> {
+    let articles = [],
+      authors = [];
     if (type === 'activity') {
       const profile = await this.profileModel.findOne({ wallet }).exec();
-      let articles = [],
-        authors = [];
       if (profile)
         [articles, authors] = await Promise.all([
           this.model
@@ -66,24 +66,33 @@ export class ArticleService {
           this.profileModel.find({ wallet: { $in: profile.following } }).exec(),
         ]);
       return { articles, authors };
-    } else if (type === 'featured')
+    } else if (type === 'featured') {
+      articles = await this.model
+        .find({ featured: true, isDraft: false, thread: undefined })
+        .sort({ _id: -1 })
+        .limit(20)
+        .exec();
+      authors = await this.profileModel
+        .find({ wallet: { $in: articles.map((article) => article.wallet) } })
+        .exec();
       return {
-        articles: await this.model
-          .find({ featured: true, isDraft: false, thread: undefined })
-          .sort({ _id: -1 })
-          .limit(20)
-          .exec(),
-        authors: [],
+        articles,
+        authors,
       };
-    else if (type === 'all')
+    } else if (type === 'all') {
+      articles = await this.model
+        .find({ isDraft: false, thread: undefined })
+        .sort({ _id: -1 })
+        .limit(20)
+        .exec();
+      authors = await this.profileModel
+        .find({ wallet: { $in: articles.map((article) => article.wallet) } })
+        .exec();
       return {
-        articles: await this.model
-          .find({ isDraft: false, thread: undefined })
-          .sort({ _id: -1 })
-          .limit(20)
-          .exec(),
-        authors: [],
+        articles,
+        authors,
       };
+    }
     return { articles: [], authors: [] };
   }
 

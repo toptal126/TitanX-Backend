@@ -54,8 +54,11 @@ export class ArticleController {
   }
 
   @Get('type/:type/:wallet')
-  async articlesByType(@Param('type') type: string,@Param('wallet') wallet: string) {
-    return await this.service.articlesByType(type,wallet);
+  async articlesByType(
+    @Param('type') type: string,
+    @Param('wallet') wallet: string,
+  ) {
+    return await this.service.articlesByType(type, wallet);
   }
 
   @Put('draft')
