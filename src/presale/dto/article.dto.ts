@@ -7,7 +7,7 @@ export class BaseArticleDto {
 
 export class CreateArticleDto extends BaseArticleDto {
   thread: string;
-  CreateArticleDto: string;
+  signatureHash: string;
 }
 
 export class DraftArticleDto extends BaseArticleDto {

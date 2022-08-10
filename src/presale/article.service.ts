@@ -153,8 +153,25 @@ export class ArticleService {
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      const recovered = this.web3.eth.accounts.recover(
+        parentArticle.link,
+        createArticleDto.signatureHash,
+      );
+      if (recovered !== createArticleDto.wallet) {
+        throw new HttpException('Invalid Signature!', HttpStatus.BAD_REQUEST);
+      }
+
       parentArticle.replyNumber++;
       parentArticle.save();
+    } else {
+      const recovered = this.web3.eth.accounts.recover(
+        createArticleDto.subject,
+        createArticleDto.signatureHash,
+      );
+      if (recovered !== createArticleDto.wallet) {
+        throw new HttpException('Invalid Signature!', HttpStatus.BAD_REQUEST);
+      }
     }
     const author = await this.profileModel
       .findOne({ wallet: createArticleDto.wallet })
