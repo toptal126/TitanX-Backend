@@ -95,4 +95,9 @@ export class ProfileController {
   async updateAssetsByWallet(@Param('wallet') wallet: string) {
     return await this.service.updateAssetsByWallet(wallet);
   }
+
+  @Get('suggested/:wallet')
+  async suggestedProfiles(@Param('wallet') wallet: string) {
+    return await this.service.getSuggestedProfiles(wallet);
+  }
 }
