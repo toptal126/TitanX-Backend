@@ -326,4 +326,20 @@ export class ProfileService {
       .exec();
     return followingProfiles;
   }
+  async getSuggestedProfiles(wallet: string) {
+    const existingObj = await this.findOneByWallet(wallet);
+    let following = [];
+    if (existingObj) following = existingObj.following;
+    following.push(wallet);
+    return await this.model
+      .find({ wallet: { $nin: following }, articleNumber: { $gt: 0 } })
+      .limit(5)
+      .select({
+        wallet: 1,
+        username: 1,
+        avatarLink: 1,
+        bio: 1,
+      })
+      .exec();
+  }
 }
