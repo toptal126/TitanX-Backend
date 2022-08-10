@@ -25,6 +25,10 @@ export class PresaleController {
   async index() {
     return await this.service.findAll();
   }
+  @Get('upcoming')
+  async upcomingPresales() {
+    return await this.service.upcomingPresales();
+  }
 
   @Get(':address')
   async find(@Param('address') address: string) {
@@ -101,6 +105,7 @@ export class PresaleController {
   ) {
     return await this.service.presalesByOwner(chainId, owner);
   }
+
   @Post('like/:address/:wallet')
   async like(
     @Param('address') address: string,

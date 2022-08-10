@@ -126,4 +126,11 @@ export class PresaleInfoService {
       )
       .exec();
   }
+
+  async upcomingPresales(): Promise<PresaleInfo[]> {
+    console.log(new Date().getTime() / 1000);
+    return await this.model
+      .find({ presaleStartTime: { $gt: new Date().getTime() / 1000 } })
+      .exec();
+  }
 }
