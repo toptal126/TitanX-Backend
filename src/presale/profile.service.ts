@@ -282,7 +282,7 @@ export class ProfileService {
     else follower.following.push(existingObj.wallet);
 
     await Promise.all([existingObj.save(), follower.save()]);
-    return existingObj;
+    return follower;
   }
   async followersData(username: string): Promise<Profile[]> {
     const existingObj = await this.findOneByUsername(username);
