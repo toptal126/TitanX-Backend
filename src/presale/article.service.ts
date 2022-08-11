@@ -29,6 +29,9 @@ export class ArticleService {
   async findOne(id: string): Promise<ArticleDocument> {
     return await this.model.findById(id).exec();
   }
+  async getPostsByTag(tag: string): Promise<ArticleDocument[]> {
+    return await this.model.find({ tags: tag }).exec();
+  }
   async findReplies(id: string): Promise<ArticleDocument[]> {
     return await this.model.find({ thread: id }).exec();
   }
