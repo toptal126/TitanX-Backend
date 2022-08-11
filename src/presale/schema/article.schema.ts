@@ -20,6 +20,9 @@ export class Article {
   @Prop()
   markdown: string;
 
+  @Prop({ default: '' })
+  giphyLink: string;
+
   @Prop()
   type: string;
 

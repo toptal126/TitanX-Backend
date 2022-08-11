@@ -33,6 +33,11 @@ export class ArticleController {
   //   return await this.service.findOne(id);
   // }
 
+  @Get('tag/:tag')
+  async getPostsByTag(@Param('tag') tag: string) {
+    return await this.service.getPostsByTag(tag.trim());
+  }
+
   @Get(':link')
   async getOneByLink(@Param('link') link: string) {
     const article = await this.service.findOne(link.split('-').at(-1));
