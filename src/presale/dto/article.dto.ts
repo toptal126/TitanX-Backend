@@ -1,6 +1,7 @@
 export class BaseArticleDto {
   wallet: string;
   subject?: string;
+  giphyLink?: string;
   markdown: string;
   tags: string;
 }

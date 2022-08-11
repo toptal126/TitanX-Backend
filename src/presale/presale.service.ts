@@ -35,9 +35,11 @@ export class PresaleInfoService {
         wallet: createPresaleInfoDto.owner,
         presaleNumber: 1,
         createdAt: new Date(),
+        exp: 1000,
       }).save();
     } else {
       ownerProfile.presaleNumber += 1;
+      ownerProfile.exp += 1000;
       await ownerProfile.save();
     }
     return createdPresale;

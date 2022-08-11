@@ -100,5 +100,34 @@ export class Profile {
 export const ProfileSchema = SchemaFactory.createForClass(Profile);
 
 /*
+Level Up System
+1. 1
+2. 100
+3. 200
+4. 1000
+5. 2000
+6. 3000
+7. 4000
+8. 5000
+9. 7000
+10. 9000
+11. 11000
+12. 13000
+13. 15000
+14. 17000
+15. 21000
 
+Create Presale - Increase 1000
+Contribute Presale - 100
+Like Presale - Increase 1
+Writing Post - Increase 10
+Reply Post - Increase 2
+Get Report - Decrease 10
+Get Followed - Increase 3
+Follow Somebody - Increase 1
+Post Get Clapped - Increase 5
+Clap Post - Increase 1
+Set NFT as Profile - Increase 3
+Mint NFT - Increase 100
+Mint Kangaroose NFT - Increase 100
 */
