@@ -146,8 +146,9 @@ export class ProfileService {
           tokenQuote: 0,
           totalQuote: 0,
         };
+        profile.nftAssets = [];
         data.items.forEach((item) => {
-          if (item.type === 'dust') return;
+          // if (item.type === 'dust') return;
           if (item.nft_data && item.supports_erc?.includes('erc721')) {
             // if item is nft
             profile.nftAssets.push({
