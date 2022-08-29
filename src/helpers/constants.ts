@@ -66,6 +66,7 @@ export const DEX_LIST = [
 ];
 
 export const RPC_LIST = [
+  'https://rpc.ankr.com/bsc',
   'https://bsc-dataseed1.binance.org/',
   'https://bsc-dataseed2.binance.org/',
   'https://bsc-dataseed3.binance.org/',

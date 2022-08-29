@@ -86,7 +86,7 @@ export class ArticleService {
       articles = await this.model
         .find({ isDraft: false, thread: undefined })
         .sort({ _id: -1 })
-        .limit(20)
+        .limit(10)
         .exec();
       authors = await this.profileModel
         .find({ wallet: { $in: articles.map((article) => article.wallet) } })
@@ -186,7 +186,10 @@ export class ArticleService {
         const createdArticle = await new this.model({
           ...createArticleDto,
           tags: !createArticleDto.thread
-            ? createArticleDto.tags.split(',').map((item) => item.trim())
+            ? createArticleDto.tags
+                .replace(',', '')
+                .split(' ')
+                .map((item) => item.trim())
             : [],
           link: ' ',
           subject: createArticleDto.thread
