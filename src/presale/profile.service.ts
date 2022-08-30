@@ -101,7 +101,7 @@ export class ProfileService {
       profile.nftAssets = [].concat.apply(
         [],
         profile.nftAssets.map((item) =>
-          item.nftData.map((token) => {
+          item.nftData?.map((token) => {
             return {
               ...token,
               contract_name: item.name,
@@ -342,5 +342,27 @@ export class ProfileService {
         bio: 1,
       })
       .exec();
+  }
+
+  async updateScoreByWallet(
+    wallet: string,
+    point: number,
+    description: string,
+  ) {
+    const profile: ProfileDocument = await this.findOneByWallet(wallet);
+    return await this.updateScoreByProfile(profile, point, description);
+  }
+
+  async updateScoreByProfile(
+    profile: ProfileDocument,
+    point: number,
+    description: string,
+  ) {
+    profile.exp += point;
+    profile.expLog.push({
+      point,
+      description,
+    });
+    await profile.save();
   }
 }

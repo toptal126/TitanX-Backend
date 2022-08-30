@@ -89,8 +89,8 @@ export class Profile {
 
   @Prop({ required: true, default: [] })
   expLog: Array<{
-    description: string;
     point: number;
+    description: string;
   }>;
 
   @Prop({ required: true })

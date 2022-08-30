@@ -8,6 +8,7 @@ import {
   DraftArticleDto,
   PublishArticleDto,
 } from './dto/article.dto';
+import { ProfileService } from './profile.service';
 
 @Injectable()
 export class ArticleService {
@@ -18,6 +19,8 @@ export class ArticleService {
 
     @InjectModel(Profile.name)
     private readonly profileModel: Model<ProfileDocument>,
+
+    private readonly profileService: ProfileService,
   ) {
     const Web3 = require('web3');
     this.web3 = new Web3();
@@ -229,6 +232,14 @@ export class ArticleService {
       const indexOfWallet: number = article.likes.indexOf(wallet);
       if (indexOfWallet >= 0) article.likes.splice(indexOfWallet, 1);
       else article.likes.push(wallet);
+
+      this.profileService.updateScoreByWallet(
+        article.wallet,
+        indexOfWallet >= 0 ? -3 : 3,
+        `Article ${article._id} ${
+          indexOfWallet >= 0 ? 'unstared' : 'stared'
+        } by reader ${wallet}`,
+      );
       await article.save();
       return article;
     } catch (error) {
@@ -251,19 +262,23 @@ export class ArticleService {
       article.link,
       publishArticleDto.signatureHash,
     );
-    console.log(recovered);
+
     if (recovered === article.wallet) {
       article.isDraft = false;
       await article.save();
       const author = await this.profileModel
         .findOne({ wallet: article.wallet })
         .exec();
+
       author.articleNumber += 1;
-      author.save();
+      this.profileService.updateScoreByProfile(
+        author,
+        5,
+        `Publish article ${article._id}`,
+      );
       return article;
     } else {
       throw new HttpException('Invalid Signature!', HttpStatus.BAD_REQUEST);
     }
-    return article;
   }
 }
